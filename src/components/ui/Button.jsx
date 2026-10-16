@@ -15,6 +15,7 @@ const Button = forwardRef(function Button({
   const baseStyles = 'inline-flex items-center justify-center gap-2 font-sans font-semibold uppercase tracking-label rounded-none transition-all duration-200';
   
   const variants = {
+    primary: 'bg-ink text-paper border border-ink hover:bg-graphite hover:border-graphite disabled:bg-stone disabled:border-stone disabled:text-paper disabled:cursor-not-allowed',
     solid: 'bg-ink text-paper hover:bg-paper hover:text-ink hover:border hover:border-ink',
     outline: 'border border-ink bg-transparent text-ink hover:bg-ink hover:text-paper',
     link: 'bg-transparent text-ink hover:text-ink/70 px-0',

@@ -13,7 +13,7 @@ const navLinks = [
 
 export default function Navbar() {
   const location = useLocation();
-  const { count } = useCart();
+  const { count, openDrawer } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHomePage, setIsHomePage] = useState(true);
@@ -102,14 +102,19 @@ export default function Navbar() {
           <Link to="/account" className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors" aria-label="Account">
             <Icon name="user" size={24} />
           </Link>
-          <Link to="/cart" className="relative w-11 h-11 flex items-center justify-center text-ink" aria-label={`Shopping bag${count > 0 ? `, ${count} items` : ''}`}>
+          <button
+            type="button"
+            onClick={openDrawer}
+            className="relative w-11 h-11 flex items-center justify-center text-ink transition-colors hover:text-graphite"
+            aria-label={`Open shopping bag${count > 0 ? `, ${count} items` : ''}`}
+          >
             <Icon name="bag" size={24} />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-5 bg-ink text-paper text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-5 bg-ink text-paper text-[10px] font-bold flex items-center justify-center px-1">
                 {count > 99 ? '99+' : count}
               </span>
             )}
-          </Link>
+          </button>
         </div>
       </div>
 

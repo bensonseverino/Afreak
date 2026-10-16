@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { products, categories, colors, formatPrice, getProductsByCategory } from '../data/products';
+import { products, categories, colors, colorHex, formatPrice, getProductsByCategory } from '../data/products';
 import FilterSidebar from '../components/shop/FilterSidebar';
 import SortSelect from '../components/shop/SortSelect';
 import PromoBanner from '../components/shop/PromoBanner';
@@ -79,12 +79,12 @@ export default function Shop({ category: categoryParam }) {
 
     // Color filter
     if (filters.color) {
-      result = result.filter(p => p.colors.includes(filters.color));
+      result = result.filter(p => p.colors.some(c => colorHex(c) === filters.color));
     }
 
     // Size filter
     if (filters.size?.length) {
-      result = result.filter(p => p.sizes.some(s => filters.size.includes(s)));
+      result = result.filter(p => p.sizes.some(s => filters.size.includes(s.label)));
     }
 
     // Price filter

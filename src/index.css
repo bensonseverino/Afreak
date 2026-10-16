@@ -10,12 +10,15 @@
   --color-graphite: #6B6B6B;
   --color-volt: #E4FF1A;
 
+  /* Functional states only — never decorative */
+  --color-ok: #1A9E4B;
+  --color-warn: #C2410C;
+  --color-danger: #D92D20;
+
   --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
 
   --tracking-label: 0.04em;
-
-  --radius-none: 0;
 
   --max-width-shell: 1120px;
   --max-width-wide: 1360px;
@@ -28,16 +31,17 @@
 body {
   @apply font-sans text-ink bg-paper antialiased;
   margin: 0;
+  overscroll-behavior-y: none;
 }
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+button,
+a {
+  touch-action: manipulation;
 }
 
 /* Focus styles */
@@ -45,7 +49,7 @@ html {
   @apply outline outline-2 outline-offset-2 outline-ink;
 }
 
-*:focus-visible:where(.bg-ink, .bg-ink\/*) {
+*:focus-visible:where(.bg-ink) {
   @apply outline-volt;
 }
 
@@ -82,18 +86,47 @@ img {
   @apply relative after:absolute after:bottom-0 after:left-0 after:h-[1px] after:bg-current after:scale-x-0 after:origin-bottom-right after:transition-transform hover:after:scale-x-100 hover:after:origin-bottom-left;
 }
 
-/* Carousel/slider */
-.slider-container {
-  @apply relative overflow-hidden;
+/* Hide scrollbars on snap rows */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.slider-track {
-  @apply flex transition-transform duration-300 ease-out;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-/* Mobile sticky bar */
-@media (max-width: 1023px) {
-  .mobile-sticky-bar {
-    @apply fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-paper px-6 py-4;
+/* Invalid-selection shake (size grid) */
+@keyframes afreak-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(5px);
+  }
+  80% {
+    transform: translateX(-3px);
+  }
+}
+
+.animate-shake {
+  animation: afreak-shake 0.4s ease-in-out;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

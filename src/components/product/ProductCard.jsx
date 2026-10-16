@@ -2,24 +2,22 @@ import { Link } from 'react-router-dom';
 import Placeholder from '../ui/Placeholder';
 import Badge from '../ui/Badge';
 import ColorDots from '../ui/ColorDots';
-import { formatPrice } from '../../data/products';
+import { formatPrice, colorHex } from '../../data/products';
 
 export default function ProductCard({ product, className = '' }) {
-  const { slug, name, price, oldPrice, colors = [], isNew, category, image } = product;
-  const firstColor = colors[0] || '#000000';
+  const { slug, name, price, oldPrice, colors = [], isNew, images = [] } = product;
+  const firstColor = colorHex(colors[0]);
+  const image = images[0] || null;
+  const discount = oldPrice ? Math.round((1 - price / oldPrice) * 100) : 0;
 
   return (
-    <Link 
-      to={`/product/${slug}`} 
-      className={`group block ${className}`}
-      aria-label={`View ${name}`}
-    >
+    <Link to={`/product/${slug}`} className={`group block ${className}`} aria-label={`View ${name}`}>
       <div className="relative overflow-hidden bg-card aspect-[5/6] mb-3">
         <Placeholder ratio="aspect-[5/6]" label="PRODUCT" src={image} alt={name} />
         {(isNew || oldPrice) && (
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {isNew && <Badge variant="new">NEW</Badge>}
-            {oldPrice && <Badge variant="sale">-{Math.round((1 - price / oldPrice) * 100)}%</Badge>}
+            {oldPrice && <Badge variant="sale">-{discount}%</Badge>}
           </div>
         )}
       </div>

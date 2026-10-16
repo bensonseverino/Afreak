@@ -1,228 +1,228 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { formatPrice } from '../../data/products';
+import { useEffect, useRef, useState } from 'react';
 import Button from '../ui/Button';
-import ColorDots from '../ui/ColorDots';
-import SizeSelector from '../ui/SizeSelector';
-import QuantityStepper from '../ui/QuantityStepper';
-import Accordion from '../ui/Accordion';
-import Badge from '../ui/Badge';
 import Icon from '../ui/Icon';
-import { useCart } from '../../context/CartContext';
+import Stars from '../ui/Stars';
+import Badge from '../ui/Badge';
+import Accordion from '../ui/Accordion';
+import QuantityStepper from '../ui/QuantityStepper';
+import ColorSwatches from './ColorSwatches';
+import SizeGrid from './SizeGrid';
+import { colorHex, colorName, formatPrice } from '../../data/products';
+import { formatCount } from '../../utils/format';
 
-const accordionItems = [
-  {
-    label: 'DESCRIPTION',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.'
-  },
-  {
-    label: 'FEATURES',
-    content: '• Premium heavyweight cotton blend\n• Water-resistant finish\n• Multiple utility pockets with zip closures\n• Adjustable drawstring hood and hem\n• Reinforced stitching at stress points\n• Custom AFREAK hardware\n• Made in Portugal'
-  },
-  {
-    label: 'GUARANTEES',
-    content: '• 30-day free returns\n• 2-year warranty on manufacturing defects\n• Free shipping on orders over €150\n• Secure checkout with SSL encryption\n• Authenticity guaranteed'
-  },
-  {
-    label: 'REVIEWS',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. (42 reviews)'
-  },
-];
+const SHIPPING_COPY =
+  'Free standard shipping on all orders over €150. Standard delivery takes 4–7 business days. Express options are available at checkout. Returns accepted within 30 days of delivery.';
+const GUARANTEE_COPY =
+  'Every AFREAK piece is built to last. If a seam fails or a zip breaks within 2 years of purchase, we repair or replace it — no questions asked.';
 
-export default function ProductInfo({ product, isMobile = false }) {
-  const { addItem } = useCart();
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState(product.colors[0] || '#000000');
-  const [quantity, setQuantity] = useState(1);
-  const [showSizeGuide, setShowSizeGuide] = useState(false);
-  const [showCustomPrint, setShowCustomPrint] = useState(false);
-  const [wishlist, setWishlist] = useState(false);
+/**
+ * Right-hand product info column. State is owned by ProductDetail so the
+ * sticky bar and size sheet stay in sync.
+ */
+export default function ProductInfo({
+  product,
+  color,
+  onColorChange,
+  size,
+  onSizeChange,
+  qty,
+  onQtyChange,
+  print,
+  onOpenPrint,
+  wishlisted,
+  onToggleWishlist,
+  onAddToBag,
+  onBuyNow,
+  added = false,
+  error = '',
+  onOpenSizeGuide,
+  ctaSentinelRef,
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [shake, setShake] = useState(false);
+  const sizeRef = useRef(null);
 
-  const colorName = product.colors.find(c => c === selectedColor) ? 'Black' : 'Gray';
+  useEffect(() => {
+    if (!error) return;
+    sizeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setShake(true);
+    const t = setTimeout(() => setShake(false), 500);
+    return () => clearTimeout(t);
+  }, [error]);
 
-  const handleAddToBag = () => {
-    if (!selectedSize) return;
-    addItem({
-      productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      size: selectedSize,
-      color: selectedColor,
-      image: null,
-    });
-  };
+  const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const selectedColor = product.colors?.find((c) => colorHex(c) === color);
+  const sizeEntry = product.sizes?.find((s) => s.label === size);
+  const lowStock = sizeEntry && sizeEntry.stock > 0 && sizeEntry.stock <= 3 ? sizeEntry.stock : 0;
+  const maxQty = Math.min(sizeEntry?.stock || 10, 10);
+  const ctaLabel = added ? 'Added ✓' : size ? 'Add to bag' : 'Select a size';
 
-  const disabledSizes = product.sizes.filter(s => !product.sizes.includes(s));
+  const accordionItems = [
+    { label: 'DESCRIPTION', content: product.description },
+    {
+      label: 'FEATURES',
+      content: (product.features || []).map((f) => `${f.title} — ${f.sub}`).join('  ·  '),
+    },
+    { label: 'SHIPPING & RETURNS', content: SHIPPING_COPY },
+    { label: 'GUARANTEES', content: GUARANTEE_COPY },
+    { label: 'REVIEWS', content: 'Customer reviews are shown in the reviews section on this page.' },
+  ];
 
   return (
-    <div className={`space-y-6 ${isMobile ? 'pb-32' : ''}`} role="region" aria-label="Product information">
-      {/* Badges */}
-      <div className="flex gap-2">
-        {product.isNew && <Badge variant="new">NEW</Badge>}
-        {product.oldPrice && <Badge variant="sale">-{Math.round((1 - product.price / product.oldPrice) * 100)}%</Badge>}
-      </div>
+    <div className="font-sans">
+      <header>
+        {product.isNew && (
+          <p className="font-sans font-bold uppercase text-[12px] tracking-label text-graphite mb-2">
+            New arrival
+          </p>
+        )}
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-display font-extrabold uppercase text-3xl md:text-4xl leading-[1.05] tracking-tight text-ink">
+            {product.name}
+          </h1>
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              aria-label="Share product"
+              className="w-11 h-11 border border-line flex items-center justify-center text-ink hover:border-ink transition-colors"
+            >
+              <Icon name="share" size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleWishlist}
+              aria-pressed={wishlisted}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              className="w-11 h-11 border border-line flex items-center justify-center text-ink hover:border-ink transition-colors"
+            >
+              <Icon name="heart" size={18} className={wishlisted ? '[&_svg]:fill-current' : ''} />
+            </button>
+          </div>
+        </div>
 
-      {/* Title */}
-      <h1 className="font-display font-extrabold uppercase text-[32px] leading-tight tracking-tight text-ink">
-        {product.name.toUpperCase()}
-      </h1>
+        <a href="#reviews" className="mt-3 inline-flex items-center gap-2 group">
+          <Stars value={product.rating} size={14} />
+          <span className="font-sans font-semibold text-[13px] text-ink">{product.rating}</span>
+          <span className="font-sans text-[13px] text-graphite underline group-hover:text-ink">
+            ({formatCount(product.reviewCount)} reviews)
+          </span>
+        </a>
 
-      {/* Price Row */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <span className="font-sans font-bold text-[13px] text-ink">{formatPrice(product.price)}</span>
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
+          <span className="font-display font-bold text-[28px] leading-none text-ink">
+            {formatPrice(product.price)}
+          </span>
           {product.oldPrice && (
-            <span className="font-sans text-[13px] text-graphite line-through">{formatPrice(product.oldPrice)}</span>
+            <span className="font-sans text-[15px] text-graphite line-through">
+              {formatPrice(product.oldPrice)}
+            </span>
           )}
+          {discount > 0 && <Badge variant="sale">-{discount}%</Badge>}
         </div>
+      </header>
+
+      <div className="mt-4">
+        <p className={`text-[14px] text-graphite leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}>
+          {product.description}
+        </p>
         <button
-          onClick={() => setShowSizeGuide(true)}
-          className="font-sans text-xs underline underline-offset-2 text-graphite hover:text-ink transition-colors"
           type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 font-sans text-[13px] text-ink underline"
         >
-          SIZE GUIDE
+          {expanded ? 'Show less' : 'Show more'}
         </button>
       </div>
 
-      {/* Size Selector */}
-      <div>
-        <label className="font-sans font-semibold uppercase text-xs tracking-label text-ink block mb-3">SIZE</label>
-        <SizeSelector
-          sizes={product.sizes}
-          selectedSize={selectedSize}
-          onSelect={setSelectedSize}
-          disabledSizes={disabledSizes}
-          required
-        />
-      </div>
-
-      {/* Color Swatches */}
-      <div>
-        <label className="font-sans font-semibold uppercase text-xs tracking-label text-ink block mb-3">COLOR</label>
-        <div className="flex items-center gap-4">
-          <ColorDots 
-            colors={product.colors} 
-            selectedColor={selectedColor} 
-            onSelect={setSelectedColor} 
-            size={22} 
-          />
-          <span className="font-sans text-graphite text-sm">{colorName}</span>
+      {product.colors?.length > 0 && (
+        <div className="mt-6">
+          <p className="font-sans text-[13px] font-medium text-ink mb-1">
+            Color: {colorName(selectedColor)}
+          </p>
+          <ColorSwatches colors={product.colors} selected={color} onSelect={onColorChange} />
         </div>
+      )}
+
+      <div className="mt-6" ref={sizeRef}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-sans text-[13px] font-medium text-ink">Size</p>
+          <button
+            type="button"
+            onClick={onOpenSizeGuide}
+            className="font-sans text-[13px] text-ink underline"
+          >
+            View size guide
+          </button>
+        </div>
+        <div className={shake ? 'animate-shake' : ''}>
+          <SizeGrid sizes={product.sizes} selected={size} onSelect={onSizeChange} />
+        </div>
+        {lowStock > 0 && (
+          <p className="mt-2 text-[12px] text-warn" aria-live="polite">
+            Only {lowStock} left
+          </p>
+        )}
+        {error && (
+          <p className="mt-2 text-[12px] text-danger" aria-live="polite">
+            {error}
+          </p>
+        )}
       </div>
 
-      {/* Custom Print Hook */}
-      <button
-        onClick={() => setShowCustomPrint(true)}
-        className="w-full sm:w-auto border border-ink text-ink font-sans font-semibold uppercase text-xs tracking-label py-3 px-6 hover:bg-ink hover:text-paper transition-colors mt-2"
-        type="button"
-      >
-        + ADD CUSTOM PRINT
-      </button>
-
-      {/* Quantity Stepper */}
-      <div className="flex items-center gap-4">
-        <label className="font-sans font-semibold uppercase text-xs tracking-label text-ink">QUANTITY</label>
-        <QuantityStepper value={quantity} onChange={setQuantity} max={10} />
+      <div className="mt-6 flex items-center gap-4 flex-wrap">
+        <QuantityStepper value={qty} onChange={onQtyChange} max={maxQty} />
+        <span className="flex items-center gap-2 text-[13px] text-graphite">
+          <span className="w-1.5 h-1.5 rounded-full bg-ok" aria-hidden="true" /> In stock · Ready to ship
+        </span>
       </div>
 
-      {/* Accordions */}
-      <Accordion items={accordionItems} />
+      {product.customizable && (
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            size="md"
+            leftIcon="plus"
+            onClick={onOpenPrint}
+            className="w-full sm:w-auto h-12 text-[12px]"
+          >
+            {print?.enabled ? `Custom print · ${print.placement}` : 'Add custom print'}
+          </Button>
+        </div>
+      )}
 
-      {/* Add to Bag + Wishlist */}
-      <div className="flex gap-4 pt-4 border-t border-line">
-        <Button 
-          variant="solid" 
-          className="flex-1 h-[56px] text-[13px]" 
-          onClick={handleAddToBag}
-          disabled={!selectedSize}
-        >
-          ADD TO BAG
-        </Button>
+      <div className="mt-6 flex gap-2">
         <button
-          onClick={() => setWishlist(!wishlist)}
-          className="w-[56px] h-[56px] border border-ink flex items-center justify-center text-ink hover:bg-ink hover:text-paper transition-colors"
-          aria-label={wishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-          aria-pressed={wishlist}
           type="button"
+          onClick={onAddToBag}
+          className={`flex-1 h-14 inline-flex items-center justify-center font-sans font-semibold uppercase tracking-label text-[12px] border transition-colors ${
+            added
+              ? 'bg-ink text-paper border-ink'
+              : !size
+                ? 'bg-stone text-paper border-stone'
+                : 'bg-ink text-paper border-ink hover:bg-graphite hover:border-graphite'
+          }`}
         >
-          <Icon name="heart" size={20} className={wishlist ? 'text-ink' : ''} />
+          {ctaLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleWishlist}
+          aria-pressed={wishlisted}
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          className="w-14 h-14 border border-ink flex items-center justify-center shrink-0 text-ink hover:bg-mist transition-colors"
+        >
+          <Icon name="heart" size={20} className={wishlisted ? '[&_svg]:fill-current' : ''} />
         </button>
       </div>
 
-      {/* Size Guide Modal */}
-      {showSizeGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50" onClick={() => setShowSizeGuide(false)} role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
-          <div className="bg-paper w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-line">
-              <h2 id="size-guide-title" className="font-display font-bold uppercase text-xl tracking-tight">SIZE GUIDE</h2>
-              <button onClick={() => setShowSizeGuide(false)} className="w-10 h-10 flex items-center justify-center text-ink hover:text-graphite" aria-label="Close size guide">
-                <Icon name="close" size={24} />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-graphite text-sm mb-4">Measurements in cm. Choose the size that best matches your body measurements.</p>
-              <table className="w-full text-sm border border-line">
-                <thead>
-                  <tr className="bg-mist">
-                    <th className="p-3 text-left font-semibold uppercase text-xs tracking-label border-b border-line">SIZE</th>
-                    <th className="p-3 text-left font-semibold uppercase text-xs tracking-label border-b border-line">CHEST</th>
-                    <th className="p-3 text-left font-semibold uppercase text-xs tracking-label border-b border-line">WAIST</th>
-                    <th className="p-3 text-left font-semibold uppercase text-xs tracking-label border-b border-line">HIPS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size, i) => (
-                    <tr key={size} className={i % 2 === 0 ? 'bg-paper' : 'bg-mist'}>
-                      <td className="p-3 font-medium border-b border-line">{size}</td>
-                      <td className="p-3 text-graphite border-b border-line">{86 + i * 4}-{90 + i * 4}</td>
-                      <td className="p-3 text-graphite border-b border-line">{70 + i * 4}-{74 + i * 4}</td>
-                      <td className="p-3 text-graphite border-b border-line">{92 + i * 4}-{96 + i * 4}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+      <Button variant="outline" size="md" onClick={onBuyNow} className="w-full h-14 mt-2 text-[12px]">
+        Buy now
+      </Button>
 
-      {/* Custom Print Modal */}
-      {showCustomPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50" onClick={() => setShowCustomPrint(false)} role="dialog" aria-modal="true" aria-labelledby="custom-print-title">
-          <div className="bg-paper w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-line">
-              <h2 id="custom-print-title" className="font-display font-bold uppercase text-xl tracking-tight">CUSTOM PRINT</h2>
-              <button onClick={() => setShowCustomPrint(false)} className="w-10 h-10 flex items-center justify-center text-ink hover:text-graphite" aria-label="Close">
-                <Icon name="close" size={24} />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              <p className="text-graphite text-sm">Upload your design and choose placement. Our team will review and contact you for approval before production.</p>
-              <div>
-                <label className="font-sans font-medium uppercase text-xs tracking-label text-ink block mb-2">UPLOAD DESIGN</label>
-                <input type="file" accept="image/*,.pdf,.ai,.psd" className="w-full h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink" />
-              </div>
-              <div>
-                <label className="font-sans font-medium uppercase text-xs tracking-label text-ink block mb-2">PLACEMENT</label>
-                <select className="w-full h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink">
-                  <option>Front Center</option>
-                  <option>Back Center</option>
-                  <option>Left Chest</option>
-                  <option>Right Chest</option>
-                  <option>Left Sleeve</option>
-                  <option>Right Sleeve</option>
-                </select>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setShowCustomPrint(false)}>CANCEL</Button>
-                <Button variant="solid" className="flex-1">SAVE</Button>
-              </div>
-              <p className="text-[11px] text-graphite text-center">// TODO: wire to print service</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sticky-bar trigger: shown once the CTA row scrolls out of view. */}
+      <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
+
+      <Accordion items={accordionItems} className="mt-10" />
     </div>
   );
 }

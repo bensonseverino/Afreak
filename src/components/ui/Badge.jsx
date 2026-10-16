@@ -1,5 +1,6 @@
 export default function Badge({ variant = 'new', children, className = '' }) {
   const variants = {
+    default: 'bg-paper text-ink border border-line',
     new: 'bg-paper text-ink border border-ink',
     sale: 'bg-ink text-paper',
   };
