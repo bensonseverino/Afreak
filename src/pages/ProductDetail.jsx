@@ -21,6 +21,7 @@ import SizeGuideModal from '../components/pdp/SizeGuideModal';
 import ProductGrid from '../components/product/ProductGrid';
 import Icon from '../components/ui/Icon';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../hooks/useWishlist';
 
 const EMPTY_PRINT = { enabled: false, placement: null, fileName: null };
 
@@ -28,13 +29,15 @@ export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addItem, closeDrawer } = useCart();
+  const { has: hasWished, toggle: toggleWished } = useWishlist();
   const product = getProductBySlug(slug);
+  const wishlisted = product ? hasWished(product.id) : false;
+  const handleToggleWishlist = () => product && toggleWished(product);
 
   const [color, setColor] = useState(null);
   const [size, setSize] = useState(null);
   const [qty, setQty] = useState(1);
   const [print, setPrint] = useState(EMPTY_PRINT);
-  const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
   const [sizeError, setSizeError] = useState('');
   const [modal, setModal] = useState(null); // 'print' | 'sizeGuide' | 'sizeSheet'
@@ -191,7 +194,7 @@ export default function ProductDetail() {
             images={product.images}
             badges={badges}
             wishlisted={wishlisted}
-            onToggleWishlist={() => setWishlisted((v) => !v)}
+            onToggleWishlist={handleToggleWishlist}
             alt={product.name}
           />
         </div>
@@ -211,7 +214,7 @@ export default function ProductDetail() {
             print={print}
             onOpenPrint={() => setModal('print')}
             wishlisted={wishlisted}
-            onToggleWishlist={() => setWishlisted((v) => !v)}
+            onToggleWishlist={handleToggleWishlist}
             onAddToBag={handleAdd}
             onBuyNow={handleBuyNow}
             added={added}

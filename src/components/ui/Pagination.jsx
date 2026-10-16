@@ -5,9 +5,14 @@ export default function Pagination({
   currentPage = 1, 
   totalPages = 1, 
   baseUrl = '/shop',
+  query = '',
   className = '' 
 }) {
   if (totalPages <= 1) return null;
+
+  // Extra query string to preserve (e.g. "status=active&q=AF-12").
+  const suffix = query ? `&${query}` : '';
+  const href = (page) => `${baseUrl}?page=${page}${suffix}`;
 
   const pages = [];
   const maxVisible = 5;
@@ -27,7 +32,7 @@ export default function Pagination({
   return (
     <nav className={`flex items-center justify-center gap-2 ${className}`} aria-label="Pagination">
       <Link
-        to={`${baseUrl}?page=${currentPage - 1}`}
+        to={href(currentPage - 1)}
         className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors"
         aria-label="Previous page"
         aria-disabled={currentPage === 1}
@@ -38,7 +43,7 @@ export default function Pagination({
 
       {start > 1 && (
         <>
-          <Link to={`${baseUrl}?page=1`} className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors">1</Link>
+          <Link to={href(1)} className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors">1</Link>
           {start > 2 && <span className="w-10 h-10 flex items-center justify-center text-graphite">…</span>}
         </>
       )}
@@ -46,7 +51,7 @@ export default function Pagination({
       {pages.map(page => (
         <Link
           key={page}
-          to={`${baseUrl}?page=${page}`}
+          to={href(page)}
           className={`w-10 h-10 flex items-center justify-center font-sans font-medium text-[13px] transition-colors ${
             page === currentPage
               ? 'bg-ink text-paper'
@@ -62,12 +67,12 @@ export default function Pagination({
       {end < totalPages && (
         <>
           {end < totalPages - 1 && <span className="w-10 h-10 flex items-center justify-center text-graphite">…</span>}
-          <Link to={`${baseUrl}?page=${totalPages}`} className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors">{totalPages}</Link>
+          <Link to={href(totalPages)} className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors">{totalPages}</Link>
         </>
       )}
 
       <Link
-        to={`${baseUrl}?page=${currentPage + 1}`}
+        to={href(currentPage + 1)}
         className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist transition-colors"
         aria-label="Next page"
         aria-disabled={currentPage === totalPages}

@@ -130,3 +130,14 @@ img {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Print (invoice page) */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+  }
+}
+

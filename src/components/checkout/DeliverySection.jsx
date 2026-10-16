@@ -3,21 +3,7 @@ import RadioCard from '../ui/RadioCard';
 import { useCart } from '../../context/CartContext';
 import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
 import { formatPrice } from '../../data/products';
-
-const COUNTRIES = [
-  'Kenya',
-  'United Kingdom',
-  'Germany',
-  'France',
-  'United States',
-  'Canada',
-  'Australia',
-  'Netherlands',
-  'Spain',
-  'Italy',
-  'South Africa',
-  'Nigeria',
-];
+import { COUNTRIES } from '../../utils/countries';
 
 export default function DeliverySection({ form, errors, onChange }) {
   const { subtotal, shippingMethod, setShippingMethod } = useCart();

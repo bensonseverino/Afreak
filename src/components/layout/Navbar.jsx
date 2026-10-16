@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Show, UserButton } from '@clerk/react';
 import Icon from '../ui/Icon';
 import { useCart } from '../../context/CartContext';
 
@@ -10,6 +11,11 @@ const navLinks = [
   { label: 'JOURNAL', href: '/journal' },
   { label: 'CONTACT', href: '/contact' },
 ];
+
+// Warm the account chunk on hover/tap-start (spec §9).
+function preheatAccount() {
+  import('../../account/AccountLayout');
+}
 
 export default function Navbar() {
   const location = useLocation();
@@ -99,9 +105,28 @@ export default function Navbar() {
           <Link to="/search" className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors" aria-label="Search">
             <Icon name="search" size={24} />
           </Link>
-          <Link to="/account" className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors" aria-label="Account">
-            <Icon name="user" size={24} />
-          </Link>
+          <Show when="signed-out">
+            <Link
+              to="/sign-in"
+              onPointerEnter={preheatAccount}
+              onTouchStart={preheatAccount}
+              className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors"
+              aria-label="Sign in"
+            >
+              <Icon name="user" size={24} />
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <UserButton>
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Your account"
+                  labelIcon={<Icon name="user" size={16} />}
+                  href="/account"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
+          </Show>
           <button
             type="button"
             onClick={openDrawer}
@@ -158,6 +183,26 @@ export default function Navbar() {
                   >
                     CUSTOM PRINT
                   </Link>
+                </li>
+                <li>
+                  <Show when="signed-in">
+                    <Link
+                      to="/account"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block font-display font-bold uppercase text-4xl tracking-tight text-graphite hover:text-ink transition-colors"
+                    >
+                      Account
+                    </Link>
+                  </Show>
+                  <Show when="signed-out">
+                    <Link
+                      to="/sign-in"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block font-display font-bold uppercase text-4xl tracking-tight text-graphite hover:text-ink transition-colors"
+                    >
+                      Sign in
+                    </Link>
+                  </Show>
                 </li>
               </ul>
             </nav>
