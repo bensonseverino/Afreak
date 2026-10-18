@@ -1,8 +1,12 @@
-import { lookbookItems } from '../data/lookbook';
+import { lookbookItems as staticLookbook } from '../data/lookbook';
+import { useHome } from '../lib/catalog';
 import Placeholder from '../components/ui/Placeholder';
 import { Link } from 'react-router-dom';
 
 export default function Lookbook() {
+  const { home } = useHome();
+  const items = home?.lookbook?.length ? home.lookbook : staticLookbook;
+
   return (
     <div className="min-h-screen bg-paper">
       <div className="max-w-wide mx-auto px-6 lg:px-8 py-16">
@@ -16,18 +20,20 @@ export default function Lookbook() {
         </header>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" role="list">
-          {lookbookItems.map((item, index) => (
+          {items.map((item) => (
             <Link
               key={item.id}
-              to="#"
+              to={item.linkUrl || '#'}
               className="group block overflow-hidden"
               aria-label={`View ${item.label}`}
               role="listitem"
             >
               <div className="aspect-[3/4] bg-stone overflow-hidden">
-                <Placeholder 
-                  ratio="aspect-[3/4]" 
-                  label={item.label} 
+                <Placeholder
+                  ratio="aspect-[3/4]"
+                  label={item.label}
+                  src={item.image}
+                  alt={item.label}
                   className="grayscale group-hover:scale-[1.03] transition-transform duration-500"
                 />
               </div>

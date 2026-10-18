@@ -1,7 +1,9 @@
-// Shipping configuration — mock, no backend.
+// Shipping configuration. Mirrors the backend defaults
+// (FREE_SHIPPING_THRESHOLD_CENTS / FLAT_SHIPPING_CENTS / EXPRESS_SHIPPING_CENTS);
+// POST /checkout/quote is authoritative at checkout.
 export const FREE_SHIPPING_THRESHOLD = 150;
 export const FLAT_SHIPPING = 6;
-export const EXPRESS_SHIPPING = 18;
+export const EXPRESS_SHIPPING = 12;
 
 export const DELIVERY_METHODS = [
   { id: 'standard', label: 'Standard', note: '4–7 business days', price: FLAT_SHIPPING },

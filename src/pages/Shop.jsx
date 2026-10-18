@@ -1,16 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { products, categories, colors, colorHex, formatPrice, getProductsByCategory } from '../data/products';
+import { useProducts } from '../lib/catalog';
 import FilterSidebar from '../components/shop/FilterSidebar';
 import SortSelect from '../components/shop/SortSelect';
 import PromoBanner from '../components/shop/PromoBanner';
 import ProductGrid from '../components/product/ProductGrid';
 import FilterChips from '../components/ui/FilterChips';
 import Pagination from '../components/ui/Pagination';
-import SectionHeader from '../components/ui/SectionHeader';
 import Placeholder from '../components/ui/Placeholder';
 import Button from '../components/ui/Button';
-import Icon from '../components/ui/Icon';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -21,15 +19,21 @@ const sortOptions = [
   { value: 'newest', label: 'Newest' },
 ];
 
+const FALLBACK_CATEGORIES = [
+  { slug: 'hoodies', name: 'Hoodies' },
+  { slug: 'accessories', name: 'Accessories' },
+];
+
 export default function Shop({ category: categoryParam }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // URL facets drive the grid, so every link into /shop is shareable:
-  //   ?category=hoodies · ?new=1 · ?customizable=1 · ?q=hoodie
+  //   ?category=hoodies · ?new=1 · ?customizable=1 · ?q=hoodie · ?page=2
   const urlCategory = searchParams.get('category') || categoryParam || '';
   const urlQuery = searchParams.get('q') || '';
   const urlNew = searchParams.get('new') === '1';
   const urlCustomizable = searchParams.get('customizable') === '1';
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
 
   const [filters, setFilters] = useState({
     category: urlCategory ? [urlCategory] : [],
@@ -41,13 +45,7 @@ export default function Shop({ category: categoryParam }) {
     q: urlQuery,
   });
   const [sortBy, setSortBy] = useState(urlNew ? 'newest' : 'popular');
-  const [currentPage, setCurrentPage] = useState(1);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, sortBy]);
 
   // Re-seed when a link (header, menu, footer) changes the URL facets.
   useEffect(() => {
@@ -61,8 +59,52 @@ export default function Shop({ category: categoryParam }) {
     if (urlNew) setSortBy('newest');
   }, [urlCategory, urlQuery, urlNew, urlCustomizable]);
 
+  // Any filter or sort change sends us back to the first page. The previous
+  // key is tracked so a plain ?page=2 deep link is left alone on mount.
+  const filtersKey = `${sortBy}|${JSON.stringify(filters)}`;
+  const prevFiltersKey = useRef(filtersKey);
+  useEffect(() => {
+    if (prevFiltersKey.current === filtersKey) return;
+    prevFiltersKey.current = filtersKey;
+    if (!searchParams.get('page')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('page');
+    setSearchParams(next, { replace: true });
+  }, [filtersKey, searchParams, setSearchParams]);
+
+  const params = useMemo(
+    () => ({
+      category: filters.category?.length ? filters.category : undefined,
+      q: filters.q || undefined,
+      newOnly: filters.newOnly,
+      customizable: filters.customizable,
+      colors: filters.color ? [filters.color] : undefined,
+      sizes: filters.size?.length ? filters.size : undefined,
+      minPriceCents: filters.price ? Math.round(filters.price.from * 100) : undefined,
+      maxPriceCents: filters.price ? Math.round(filters.price.to * 100) : undefined,
+      sort: sortBy,
+      page,
+      limit: ITEMS_PER_PAGE,
+    }),
+    [filters, sortBy, page]
+  );
+
+  const { products, meta, isPending } = useProducts(params);
+
+  const facets = useMemo(() => {
+    const f = meta.facets;
+    if (!f) return undefined;
+    return {
+      categories: f.categories ?? [],
+      colors: f.colors ?? [],
+      sizes: f.sizes ?? [],
+      priceMin: 0,
+      priceMax: Math.max(1, Math.ceil((f.priceRange?.max ?? 20000) / 100)),
+    };
+  }, [meta.facets]);
+
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const clearAllFilters = () => {
@@ -80,17 +122,16 @@ export default function Shop({ category: categoryParam }) {
   const activeChips = useMemo(() => {
     const chips = [];
     if (filters.category?.length) {
-      filters.category.forEach(cat => {
-        const category = categories.find(c => c.slug === cat);
+      filters.category.forEach((cat) => {
+        const category = facets?.categories?.find((c) => c.slug === cat);
         chips.push({ key: `category-${cat}`, label: category?.name?.toUpperCase() || cat.toUpperCase() });
       });
     }
     if (filters.color) {
-      const color = Object.values({...colors}).find(c => c.hex === filters.color);
-      chips.push({ key: 'color', label: color?.name?.toUpperCase() || 'COLOR' });
+      chips.push({ key: 'color', label: String(filters.color).toUpperCase() });
     }
     if (filters.size?.length) {
-      filters.size.forEach(size => {
+      filters.size.forEach((size) => {
         chips.push({ key: `size-${size}`, label: size });
       });
     }
@@ -107,79 +148,15 @@ export default function Shop({ category: categoryParam }) {
       chips.push({ key: 'q', label: `“${filters.q.toUpperCase()}”` });
     }
     return chips;
-  }, [filters]);
+  }, [filters, facets]);
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-
-    // Category filter
-    if (filters.category?.length) {
-      result = result.filter(p => filters.category.includes(p.category));
-    }
-
-    // New arrivals
-    if (filters.newOnly) {
-      result = result.filter(p => p.isNew);
-    }
-
-    // Custom-print eligible
-    if (filters.customizable) {
-      result = result.filter(p => p.customizable);
-    }
-
-    // Free-text search
-    if (filters.q) {
-      const needle = filters.q.trim().toLowerCase();
-      result = result.filter(
-        p => p.name.toLowerCase().includes(needle) || p.category.toLowerCase().includes(needle)
-      );
-    }
-
-    // Color filter
-    if (filters.color) {
-      result = result.filter(p => p.colors.some(c => colorHex(c) === filters.color));
-    }
-
-    // Size filter
-    if (filters.size?.length) {
-      result = result.filter(p => p.sizes.some(s => filters.size.includes(s.label)));
-    }
-
-    // Price filter
-    if (filters.price) {
-      result = result.filter(p => p.price >= filters.price.from && p.price <= filters.price.to);
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-        break;
-      default:
-        // Popularity - keep original order or sort by isNew first
-        result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-    }
-
-    return result;
-  }, [filters, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredProducts, currentPage]);
+  const total = meta.total ?? products.length;
+  const totalPages = meta.pages ?? 1;
 
   const activeCategorySlug = filters.category?.length === 1 ? filters.category[0] : null;
   const categoryName = activeCategorySlug
-    ? (categories.find(c => c.slug === activeCategorySlug)?.name?.toUpperCase() || activeCategorySlug.toUpperCase())
+    ? (facets?.categories?.find((c) => c.slug === activeCategorySlug)?.name?.toUpperCase() ||
+        activeCategorySlug.toUpperCase())
     : 'ALL PRODUCTS';
 
   const paginationQuery = [
@@ -190,6 +167,10 @@ export default function Shop({ category: categoryParam }) {
   ]
     .filter(Boolean)
     .join('&');
+
+  const otherCategories = (facets?.categories?.length ? facets.categories : FALLBACK_CATEGORIES)
+    .filter((c) => c.slug === 'hoodies' || c.slug === 'accessories')
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen bg-paper">
@@ -225,6 +206,7 @@ export default function Shop({ category: categoryParam }) {
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearAll={clearAllFilters}
+            facets={facets}
             isOpen={filterDrawerOpen}
             onClose={() => setFilterDrawerOpen(false)}
             onOpen={() => setFilterDrawerOpen(true)}
@@ -236,7 +218,8 @@ export default function Shop({ category: categoryParam }) {
             <div className="mb-6 lg:mb-8">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
                 <div className="font-sans text-[13px] text-graphite">
-                  Showing <span className="font-semibold text-ink">{paginatedProducts.length}</span> of <span className="font-semibold text-ink">{filteredProducts.length}</span> results
+                  Showing <span className="font-semibold text-ink">{products.length}</span> of{' '}
+                  <span className="font-semibold text-ink">{total}</span> results
                 </div>
                 <SortSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
               </div>
@@ -264,17 +247,20 @@ export default function Shop({ category: categoryParam }) {
             </div>
 
             {/* Product Grid */}
-            <ProductGrid 
-              products={paginatedProducts} 
-              columns={{ base: 2, lg: 3 }} 
-            />
+            {isPending && products.length === 0 ? (
+              <div className="py-24 text-center font-sans text-[13px] text-graphite">
+                Loading products…
+              </div>
+            ) : (
+              <ProductGrid products={products} columns={{ base: 2, lg: 3 }} />
+            )}
 
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-10 lg:mt-12">
-                <Pagination 
-                  currentPage={currentPage} 
-                  totalPages={totalPages} 
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
                   baseUrl="/shop"
                   query={paginationQuery}
                 />
@@ -282,35 +268,34 @@ export default function Shop({ category: categoryParam }) {
             )}
 
             {/* Other Categories - Optional */}
-            <div className="mt-16 lg:mt-20 space-y-6" aria-label="Other categories">
-              {['hoodies', 'accessories'].map(catSlug => {
-                const cat = categories.find(c => c.slug === catSlug);
-                return (
-                  <Link 
-                    key={catSlug} 
-                    to={`/shop/${catSlug}`}
+            {otherCategories.length > 0 && (
+              <div className="mt-16 lg:mt-20 space-y-6" aria-label="Other categories">
+                {otherCategories.map((cat) => (
+                  <Link
+                    key={cat.slug}
+                    to={`/shop/${cat.slug}`}
                     className="block bg-mist border border-line p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8"
                   >
                     <div className="flex-1">
                       <h3 className="font-display font-extrabold uppercase text-xl lg:text-2xl tracking-tight text-ink mb-2">
-                        {cat?.name?.toUpperCase()}
+                        {cat.name?.toUpperCase()}
                       </h3>
                       <p className="font-sans text-graphite text-sm lg:text-base">
-                        Discover our latest {cat?.name?.toLowerCase()} collection with new styles dropping weekly.
+                        Discover our latest {cat.name?.toLowerCase()} collection with new styles dropping weekly.
                       </p>
                     </div>
                     <div className="flex items-center gap-4 mt-6 lg:mt-0 lg:flex-shrink-0">
                       <Button variant="outline" className="w-full lg:w-auto">
-                        SHOP {cat?.name?.toUpperCase()}
+                        SHOP {cat.name?.toUpperCase()}
                       </Button>
                       <div className="w-32 h-32 lg:w-40 lg:h-40 bg-paper flex-shrink-0 overflow-hidden">
-                        <Placeholder ratio="aspect-square" label={cat?.name?.toUpperCase() || 'CATEGORY'} />
+                        <Placeholder ratio="aspect-square" label={cat.name?.toUpperCase() || 'CATEGORY'} />
                       </div>
                     </div>
                   </Link>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

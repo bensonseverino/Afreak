@@ -5,6 +5,7 @@ import ColorSwatches from './ColorSwatches';
 import SizeGrid from './SizeGrid';
 import { useCart } from '../../context/CartContext';
 import { colorHex, colorName, formatPrice } from '../../data/products';
+import { findVariantId, sizesForColor } from '../../lib/catalog';
 
 // Quick-add sheet: color + size + confirm. Mobile's primary conversion path.
 export default function SizeSheet({ open, product, onClose, onAdded }) {
@@ -24,7 +25,10 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
   if (!product) return null;
 
   const selectedColor = product.colors?.find((c) => colorHex(c) === color);
-  const stock = product.sizes?.find((s) => s.label === size)?.stock ?? 0;
+  const selectedColorName = colorName(selectedColor);
+  const sizes = sizesForColor(product, selectedColorName);
+  const sizeOptions = sizes.length ? sizes : product.sizes ?? [];
+  const stock = sizeOptions.find((s) => s.label === size)?.stock ?? 0;
 
   const confirm = () => {
     if (!size) {
@@ -34,12 +38,14 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
     addItem({
       productId: product.id,
       slug: product.slug,
+      variantId: findVariantId(product, selectedColorName, size),
       name: product.name,
       price: product.price,
-      color: colorName(selectedColor),
+      color: selectedColorName,
       size,
       qty: 1,
       image: product.images?.[0] || null,
+      isNew: Boolean(product.isNew),
       print: { enabled: false, placement: null, fileName: null },
       maxQty: Math.min(stock || 1, 10),
       kind: 'product',
@@ -80,7 +86,7 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
         <div>
           <p className="font-sans text-[13px] font-medium text-ink mb-2">Size</p>
           <SizeGrid
-            sizes={product.sizes}
+            sizes={sizeOptions}
             selected={size}
             onSelect={(s) => {
               setSize(s);

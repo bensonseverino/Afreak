@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import CheckoutLayout from '../components/checkout/CheckoutLayout';
 import CheckoutProgress from '../components/checkout/CheckoutProgress';
@@ -11,6 +11,9 @@ import StickyCheckoutBar from '../components/cart/StickyCheckoutBar';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import { useCart } from '../context/CartContext';
+import { api } from '../lib/api';
+import { resolveVariantId } from '../lib/catalog';
+import { TRACK_TYPES, track } from '../lib/analytics';
 import { formatPrice } from '../data/products';
 import { isCardNumber, isCvc, isEmail, isExpiry, isPhone, isPostal, required } from '../utils/validators';
 
@@ -67,9 +70,38 @@ function validate(form) {
   return e;
 }
 
+/** The API address has line1/line2 only, so the name rides on line1. */
+function toApiAddress(form) {
+  return {
+    line1: `${form.firstName} ${form.lastName}`.trim(),
+    line2: [form.address1, form.address2].filter(Boolean).join(', ') || undefined,
+    city: form.city,
+    postalCode: form.postalCode,
+    country: form.country,
+  };
+}
+
+function linePrint(line) {
+  return line.print?.enabled
+    ? { placement: line.print.placement ?? null, artworkKey: line.print.artworkKey ?? null }
+    : null;
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
-  const { items, subtotal, discount, shipping, tax, total, clear, shippingMethod } = useCart();
+  const {
+    items,
+    subtotal,
+    discount,
+    shipping,
+    tax,
+    total,
+    clear,
+    promoCode,
+    shippingMethod,
+    setServerTotals,
+  } = useCart();
+
   const [form, setForm] = useState(() => {
     try {
       const raw = sessionStorage.getItem('afreak.checkout.form');
@@ -80,6 +112,8 @@ export default function Checkout() {
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [quote, setQuote] = useState(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const submittedRef = useRef(false);
 
@@ -93,6 +127,11 @@ export default function Checkout() {
     }
   }, [form]);
 
+  // Funnel counter for the CMS dashboard (fire-and-forget).
+  useEffect(() => {
+    track(TRACK_TYPES.checkoutStart);
+  }, []);
+
   // Hide the mobile pay bar while the on-screen keyboard is open.
   useEffect(() => {
     const vv = window.visualViewport;
@@ -101,6 +140,55 @@ export default function Checkout() {
     vv.addEventListener('resize', onResize);
     return () => vv.removeEventListener('resize', onResize);
   }, []);
+
+  // Server-authoritative totals — also surfaces out-of-stock lines.
+  useEffect(() => {
+    if (items.length === 0) return undefined;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const resolved = await Promise.all(
+          items.map(async (line) => ({
+            variantId: await resolveVariantId(line),
+            qty: line.qty,
+            print: linePrint(line),
+          }))
+        );
+        const usable = resolved.filter((r) => r.variantId);
+        if (!usable.length) return;
+
+        const res = await api('/checkout/quote', {
+          method: 'POST',
+          body: { items: usable, deliveryMethod: shippingMethod, promoCode: promoCode || null },
+        });
+        if (cancelled) return;
+        const data = res.data;
+        setQuote(data);
+        setServerTotals({
+          subtotal: data.subtotalCents / 100,
+          discount: data.discountCents / 100,
+          shipping: data.shippingCents / 100,
+          tax: 0,
+          total: data.totalCents / 100,
+        });
+      } catch {
+        /* keep the local estimate if the quote call fails */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items, shippingMethod, promoCode, setServerTotals]);
+
+  // Drop the server totals when leaving checkout.
+  useEffect(() => () => setServerTotals(null), [setServerTotals]);
+
+  const stockIssues = useMemo(
+    () => (quote?.issues ?? []).filter((i) => i.code === 'OUT_OF_STOCK' || i.code === 'UNAVAILABLE'),
+    [quote]
+  );
 
   if (items.length === 0 && !submittedRef.current) {
     return <Navigate to="/cart" replace />;
@@ -116,7 +204,7 @@ export default function Checkout() {
     setErrors((prev) => ({ ...prev, [key]: errs[key] }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (submitting || submittedRef.current) return;
 
     const errs = validate(form);
@@ -129,32 +217,63 @@ export default function Checkout() {
       return;
     }
 
+    setSubmitError('');
     submittedRef.current = true;
     setSubmitting(true);
 
-    const order = {
-      id: `AF-${Math.floor(100000 + Math.random() * 900000)}`,
-      items,
-      totals: { subtotal, discount, shipping, tax, total },
-      email: form.email,
-      address: {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        address1: form.address1,
-        address2: form.address2,
-        city: form.city,
-        postalCode: form.postalCode,
-        country: form.country,
-        phone: form.phone,
-      },
-      deliveryMethod: shippingMethod,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const resolved = await Promise.all(
+        items.map(async (line) => ({ ...line, variantId: await resolveVariantId(line) }))
+      );
+      if (resolved.some((l) => !l.variantId)) {
+        throw new Error('Some items are no longer available. Please remove them and try again.');
+      }
 
-    setTimeout(() => {
+      const res = await api('/orders', {
+        method: 'POST',
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+        body: {
+          email: form.email,
+          phone: form.phone || undefined,
+          address: toApiAddress(form),
+          items: resolved.map((l) => ({
+            variantId: l.variantId,
+            qty: l.qty,
+            print: linePrint(l),
+          })),
+          deliveryMethod: shippingMethod,
+          promoCode: promoCode || null,
+          marketingOptIn: form.marketingOptIn,
+        },
+      });
+
+      const order = {
+        id: res.data.number,
+        items: resolved,
+        totals: { subtotal, discount, shipping, tax, total },
+        email: form.email,
+        address: {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          address1: form.address1,
+          address2: form.address2,
+          city: form.city,
+          postalCode: form.postalCode,
+          country: form.country,
+          phone: form.phone,
+        },
+        deliveryMethod: shippingMethod,
+        createdAt: new Date().toISOString(),
+      };
+
       clear();
+      setServerTotals(null);
       navigate('/checkout/success', { state: { order } });
-    }, 1200);
+    } catch (err) {
+      submittedRef.current = false;
+      setSubmitting(false);
+      setSubmitError(err?.message || 'Payment failed. Please try again.');
+    }
   };
 
   const payLabel = `Pay ${formatPrice(total)}`;
@@ -177,6 +296,17 @@ export default function Checkout() {
             <ContactSection form={form} errors={errors} onChange={handleChange} />
             <DeliverySection form={form} errors={errors} onChange={handleChange} />
             <PaymentSection form={form} errors={errors} onChange={handleChange} />
+
+            {(stockIssues.length > 0 || submitError) && (
+              <div className="mt-4 border border-danger/40 bg-danger/5 px-4 py-3" role="alert">
+                {stockIssues.map((issue) => (
+                  <p key={`${issue.lineId}-${issue.code}`} className="text-[13px] text-danger">
+                    {issue.message}
+                  </p>
+                ))}
+                {submitError && <p className="text-[13px] text-danger">{submitError}</p>}
+              </div>
+            )}
 
             <Button
               variant="primary"

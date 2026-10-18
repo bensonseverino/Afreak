@@ -8,7 +8,7 @@ import AccessoryCard from '../components/pdp/AccessoryCard';
 import ProgressBar from '../components/ui/ProgressBar';
 import Toast from '../components/ui/Toast';
 import { useCart } from '../context/CartContext';
-import { accessoryPool, getProductById } from '../data/products';
+import { useProducts } from '../lib/catalog';
 import { amountToFreeShipping, FREE_SHIPPING_THRESHOLD } from '../utils/shipping';
 import { formatPrice } from '../utils/format';
 
@@ -17,6 +17,9 @@ export default function Cart() {
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
   const timerRef = useRef(null);
+
+  // Real accessory products, so anything added here can actually be ordered.
+  const { products: accessories } = useProducts({ category: 'accessories', limit: 8 });
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
@@ -35,19 +38,19 @@ export default function Cart() {
 
   const away = amountToFreeShipping(subtotal);
 
-  const accessoryIds = new Set(items.map((l) => l.productId));
-  const recommended = accessoryPool.filter((a) => !accessoryIds.has(a.id)).slice(0, 4);
+  const inCart = new Set(items.map((l) => l.productId));
+  const recommended = accessories.filter((a) => !inCart.has(a.id)).slice(0, 4);
 
   const addAccessory = (accessory) =>
     addItem({
       productId: accessory.id,
-      slug: null,
+      slug: accessory.slug ?? null,
       name: accessory.name,
       price: accessory.price,
       color: '',
       size: '',
       qty: 1,
-      image: accessory.image || null,
+      image: accessory.images?.[0] || null,
       print: { enabled: false, placement: null, fileName: null },
       maxQty: 10,
       kind: 'accessory',
@@ -90,7 +93,7 @@ export default function Cart() {
                   <CartLine
                     key={line.lineId}
                     line={line}
-                    isNew={Boolean(getProductById(line.productId)?.isNew)}
+                    isNew={Boolean(line.isNew)}
                     onQtyChange={updateQty}
                     onRemove={handleRemove}
                   />
@@ -105,7 +108,11 @@ export default function Cart() {
                   <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible">
                     {recommended.map((a) => (
                       <div key={a.id} className="w-[70%] shrink-0 snap-start sm:w-auto">
-                        <AccessoryCard accessory={a} onAdd={addAccessory} className="h-full" />
+                        <AccessoryCard
+                          accessory={{ ...a, image: a.images?.[0] || null }}
+                          onAdd={addAccessory}
+                          className="h-full"
+                        />
                       </div>
                     ))}
                   </div>

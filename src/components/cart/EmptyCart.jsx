@@ -1,12 +1,13 @@
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
 import ProductGrid from '../product/ProductGrid';
-import { getNewArrivals } from '../../data/products';
+import { useProducts } from '../../lib/catalog';
 import { useNavigate } from 'react-router-dom';
 
 export default function EmptyCart() {
   const navigate = useNavigate();
-  const arrivals = getNewArrivals().slice(0, 4);
+  const { products } = useProducts({ newOnly: true, limit: 4 });
+  const arrivals = products.slice(0, 4);
 
   return (
     <div>

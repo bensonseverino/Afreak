@@ -16,13 +16,21 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
   const { items, subtotal, discount, shipping, tax, total, promoCode, applyPromo, clearPromo } = useCart();
   const [code, setCode] = useState('');
   const [promoError, setPromoError] = useState('');
+  const [applying, setApplying] = useState(false);
 
-  const handleApply = () => {
-    if (applyPromo(code)) {
-      setPromoError('');
-      setCode('');
-    } else {
-      setPromoError('That code is not valid.');
+  const handleApply = async () => {
+    if (applying) return;
+    setApplying(true);
+    try {
+      const result = await applyPromo(code);
+      if (result === true) {
+        setPromoError('');
+        setCode('');
+      } else {
+        setPromoError(typeof result === 'string' ? result : 'That code is not valid.');
+      }
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -100,9 +108,10 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
             <button
               type="button"
               onClick={handleApply}
-              className="px-4 h-11 bg-ink text-paper font-sans font-semibold uppercase text-[11px] tracking-label hover:bg-graphite"
+              disabled={applying}
+              className="px-4 h-11 bg-ink text-paper font-sans font-semibold uppercase text-[11px] tracking-label hover:bg-graphite disabled:opacity-60"
             >
-              Apply
+              {applying ? 'Checking…' : 'Apply'}
             </button>
           </div>
         )}
