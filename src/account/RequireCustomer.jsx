@@ -1,34 +1,27 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@clerk/react';
-import Skeleton from '../components/ui/Skeleton';
+import { useMe } from '../hooks/useCustomer';
+import AccountSkeleton from './components/AccountSkeleton';
 
-// Gates the account area on the Clerk session: skeleton while Clerk loads, then
-// a redirect to `/sign-in` that remembers where the visitor was heading.
+/**
+ * Gates the account area on the real session (`GET /api/account/me`):
+ * loading → skeleton, signed out → `/account/login?next=…`, and a customer who
+ * must change their password → `/account/change-password` (spec §6.1).
+ */
 export default function RequireCustomer({ children }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { data, isPending } = useMe();
   const location = useLocation();
 
-  if (!isLoaded) {
-    return (
-      <div
-        className="max-w-wide mx-auto px-4 md:px-6 lg:px-8 py-8 lg:py-12"
-        aria-busy="true"
-        aria-label="Loading your account"
-      >
-        <Skeleton className="h-24 w-full mb-6" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
-        </div>
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
+  if (isPending) return <AccountSkeleton />;
+
+  const customer = data?.customer;
+  if (!customer) {
+    const current = `${location.pathname}${location.search}`;
+    const next = current.startsWith('/') && !current.startsWith('//') ? current : '/account';
+    return <Navigate to={`/account/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
-  if (!isSignedIn) {
-    const next = encodeURIComponent(`${location.pathname}${location.search}`);
-    return <Navigate to={`/sign-in?next=${next}`} replace />;
+  if (customer.mustChangePassword) {
+    return <Navigate to="/account/change-password" replace />;
   }
 
   return children;

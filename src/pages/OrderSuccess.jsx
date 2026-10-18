@@ -1,17 +1,19 @@
 import { useEffect } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import Placeholder from '../components/ui/Placeholder';
 import ProductGrid from '../components/product/ProductGrid';
 import { getFeaturedProducts, formatPrice } from '../data/products';
 import { DELIVERY_METHODS } from '../utils/shipping';
+import { useIsSignedIn } from '../hooks/useCustomer';
 
 const STORAGE_KEY = 'afreak.lastOrder';
 
 export default function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signedIn } = useIsSignedIn();
   const stateOrder = location.state?.order;
 
   // Persist so a refresh doesn't dump the user back home.
@@ -166,6 +168,34 @@ export default function OrderSuccess() {
             </div>
           </div>
         </div>
+
+        {!signedIn && (
+          <div className="max-w-xl mx-auto mt-8 border border-line p-6 text-center">
+            <p className="font-display font-extrabold uppercase text-[16px] text-ink">
+              Request an account to track orders
+            </p>
+            <p className="text-[13px] text-graphite mt-2">
+              Create an account and our team will approve it shortly. An admin can link this order
+              once your account is active.
+            </p>
+            <div className="mt-5 flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="primary"
+                onClick={() => navigate('/account/sign-up')}
+                className="flex-1 h-12 text-[12px]"
+                type="button"
+              >
+                Request an account
+              </Button>
+            </div>
+            <p className="mt-4 text-[13px] text-graphite">
+              Already have an account?{' '}
+              <Link to="/account/login" className="text-ink underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        )}
 
         {recommendations.length > 0 && (
           <section className="mt-16" aria-label="You may also like">

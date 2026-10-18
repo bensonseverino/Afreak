@@ -1,6 +1,10 @@
+import { useSearchParams } from 'react-router-dom';
 import Placeholder from '../components/ui/Placeholder';
 
 export default function Contact() {
+  const [params] = useSearchParams();
+  const subject = params.get('subject') || '';
+
   return (
     <div className="min-h-screen bg-paper">
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-16 lg:py-24 space-y-16">
@@ -32,8 +36,9 @@ export default function Contact() {
             </div>
             <div>
               <label htmlFor="subject" className="font-sans font-semibold uppercase text-xs tracking-label text-ink block mb-2">SUBJECT</label>
-              <select id="subject" className="w-full h-12 px-4 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink" required>
+              <select id="subject" defaultValue={subject} className="w-full h-12 px-4 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink" required>
                 <option value="">Select a topic</option>
+                <option value="account">Account help</option>
                 <option value="order">Order Inquiry</option>
                 <option value="returns">Returns & Exchanges</option>
                 <option value="custom">Custom Print</option>

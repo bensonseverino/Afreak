@@ -6,15 +6,16 @@
  * in localStorage. Swap `lib/api.js` for a real fetch wrapper when the Hono
  * Pages Functions backend exists — the shapes are identical.
  *
- * Authentication is owned by Clerk (`@clerk/react`). The mock API never sees a
- * password or a one-time code: `AccountProvider` publishes the signed-in Clerk
- * user to `lib/identity.js` before any account query runs, and `requireCustomer`
- * below resolves (or lazily provisions) the matching customer row from it.
+ * Authentication is owned by the real API (HttpOnly session cookie). The mock
+ * API never sees a password or a session: `AccountProvider` publishes the
+ * signed-in customer from `GET /api/account/me` to `lib/identity.js` before any
+ * mock query runs, and `requireCustomer` below resolves (or lazily provisions)
+ * the matching customer row from it.
  *
  * Deliberate deviations (documented in README):
  *  - Order numbers/prices are integers, never touching a real payment provider.
- *  - The first Clerk user adopts the seeded demo account (`seed: true`) so the
- *    dashboard has content to show before a real backend exists.
+ *  - The first signed-in customer adopts the seeded demo account (`seed: true`)
+ *    so the dashboard has content to show before a real backend exists.
  */
 import { products, categories } from '../data/products';
 import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, EXPRESS_SHIPPING } from '../utils/shipping';
@@ -220,11 +221,11 @@ const SEED_PAYMENT = {
 function seed() {
   const db = emptyDb();
   const alexId = 'cus_seed_demo';
-  // The demo row has no Clerk id yet: the first Clerk user to sign in adopts it
+  // The demo row has no identity id yet: the first customer to sign in adopts it
   // (see resolveCustomer) so the dashboard has content before a real backend.
   db.customers.push({
     id: alexId,
-    clerkUserId: null,
+    identityId: null,
     seed: true,
     email: 'alex@mail.com',
     phoneE164: '+254712345678',
@@ -358,8 +359,8 @@ function seed() {
 /* ------------------------------------------------------------------ *
  * Customer resolution
  * ------------------------------------------------------------------ */
-// Resolve (or lazily provision) the customer row for the signed-in Clerk user.
-// The first Clerk user adopts the seeded demo account so the dashboard is not
+// Resolve (or lazily provision) the customer row for the signed-in account.
+// The first customer adopts the seeded demo account so the dashboard is not
 // empty in this frontend-only build; everyone else gets a fresh account.
 function resolveCustomer(db) {
   const identity = getIdentity();
@@ -367,11 +368,11 @@ function resolveCustomer(db) {
     throw apiError(401, 'UNAUTHENTICATED', 'You are not signed in.');
   }
 
-  let customer = db.customers.find((c) => c.clerkUserId === identity.id);
+  let customer = db.customers.find((c) => c.identityId === identity.id);
   if (!customer) {
-    customer = db.customers.find((c) => c.seed && !c.clerkUserId);
+    customer = db.customers.find((c) => c.seed && !c.identityId);
     if (customer) {
-      customer.clerkUserId = identity.id;
+      customer.identityId = identity.id;
       customer.seed = false;
     }
   }
@@ -379,7 +380,7 @@ function resolveCustomer(db) {
   if (!customer) {
     customer = {
       id: identity.id,
-      clerkUserId: identity.id,
+      identityId: identity.id,
       seed: false,
       email: null,
       phoneE164: null,
@@ -397,7 +398,7 @@ function resolveCustomer(db) {
     db.customers.push(customer);
   }
 
-  // Clerk is the source of truth for identifiers and name.
+  // The account session is the source of truth for identifiers and name.
   if (identity.email) {
     customer.email = identity.email;
     customer.emailVerifiedAt = customer.emailVerifiedAt || nowIso();
@@ -866,7 +867,8 @@ const handlers = {
     exportedAt: nowIso(),
   }),
 
-  // Identity is owned by Clerk (`user.delete()`); this erases the local record.
+  // Identity is owned by the real account API (`DELETE /account`); this erases
+  // the local record.
   'DELETE /account': (db, _ctx, { customer }) => {
     const id = customer.id;
     db.customers = db.customers.filter((c) => c.id !== id);

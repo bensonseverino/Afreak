@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useClerk, useUser } from '@clerk/react';
-import Badge from '../../components/ui/Badge';
+import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Field from '../../components/ui/Field';
 import Toast from '../../components/ui/Toast';
@@ -8,29 +7,26 @@ import { Checkbox } from '../../components/checkout/ContactSection';
 import { useMe, useUpdateMe } from '../../hooks/useCustomer';
 
 /**
- * Profile (spec §8.7). Identifiers and the name live with Clerk, the identity
- * provider; marketing preferences live in the account record.
+ * Profile (spec §6.7): the customer can edit their name and marketing
+ * preference. Email and phone are read-only — an admin changes them, so we
+ * point the customer at the contact form instead.
  */
 export default function Profile() {
-  const { user } = useUser();
-  const { openUserProfile } = useClerk();
   const { data: me } = useMe();
   const update = useUpdateMe();
   const customer = me?.customer;
 
-  const [form, setForm] = useState({ firstName: '', lastName: '', marketingOptIn: false, smsOptIn: false });
+  const [form, setForm] = useState({ firstName: '', lastName: '', marketingOptIn: false });
   const [toast, setToast] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!customer) return;
-    setForm((prev) => ({
-      ...prev,
+    setForm({
       firstName: customer.firstName || '',
       lastName: customer.lastName || '',
       marketingOptIn: Boolean(customer.marketingOptIn),
-      smsOptIn: Boolean(customer.smsOptIn),
-    }));
+    });
   }, [customer]);
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -44,20 +40,19 @@ export default function Profile() {
     event.preventDefault();
     setSaving(true);
     try {
-      if (user) {
-        await user.update({ firstName: form.firstName.trim(), lastName: form.lastName.trim() });
-      }
-      await update.mutateAsync({ marketingOptIn: form.marketingOptIn, smsOptIn: form.smsOptIn });
+      await update.mutateAsync({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        marketingOptIn: form.marketingOptIn,
+      });
       flash('Saved');
     } catch (err) {
-      flash(err?.errors?.[0]?.longMessage || err?.message || 'Could not save your changes');
+      flash(err?.message || 'Could not save your changes');
     } finally {
       setSaving(false);
     }
   };
 
-  const email = user?.primaryEmailAddress?.emailAddress || '';
-  const phone = user?.primaryPhoneNumber?.phoneNumber || '';
   const pending = saving || update.isPending;
 
   return (
@@ -71,6 +66,7 @@ export default function Profile() {
               id="profile-first"
               label="First name"
               autoComplete="given-name"
+              enterKeyHint="next"
               value={form.firstName}
               onChange={(e) => set('firstName', e.target.value)}
             />
@@ -78,6 +74,7 @@ export default function Profile() {
               id="profile-last"
               label="Last name"
               autoComplete="family-name"
+              enterKeyHint="next"
               value={form.lastName}
               onChange={(e) => set('lastName', e.target.value)}
             />
@@ -85,53 +82,34 @@ export default function Profile() {
         </section>
 
         <section className="border border-line bg-paper p-4 md:p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-sans font-bold uppercase text-[11px] tracking-label text-graphite">Email</p>
-              <p className="text-[14px] text-ink mt-1 truncate">{email || 'Not added'}</p>
-            </div>
-            {email && <Badge variant="default">VERIFIED</Badge>}
+          <div>
+            <p className="font-sans font-bold uppercase text-[11px] tracking-label text-graphite">Email</p>
+            <p className="text-[14px] text-ink mt-1 break-words">{customer?.email || 'Not added'}</p>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-line">
-            <div className="min-w-0">
-              <p className="font-sans font-bold uppercase text-[11px] tracking-label text-graphite">Phone</p>
-              <p className="text-[14px] text-ink mt-1 truncate">{phone || 'Not added'}</p>
-            </div>
-            {phone && <Badge variant="default">VERIFIED</Badge>}
+          <div className="pt-4 border-t border-line">
+            <p className="font-sans font-bold uppercase text-[11px] tracking-label text-graphite">Phone</p>
+            <p className="text-[14px] text-ink mt-1 break-words">{customer?.phone || 'Not added'}</p>
           </div>
 
           <p className="pt-4 border-t border-line text-[12px] text-graphite">
-            Email, phone and sign-in security are managed by Clerk.
+            To change your email or phone number,{' '}
+            <Link to="/contact?subject=account" className="text-ink underline">
+              contact us
+            </Link>
+            .
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => openUserProfile()}
-            className="h-12 px-6 text-[12px]"
-          >
-            Manage email &amp; security
-          </Button>
         </section>
 
         <section className="border border-line bg-paper p-4 md:p-5 space-y-4">
           <h2 className="font-sans font-bold uppercase text-[12px] tracking-label text-ink">Preferences</h2>
           <Checkbox
-            id="pref-email"
+            id="pref-marketing"
             checked={form.marketingOptIn}
             onChange={(e) => set('marketingOptIn', e.target.checked)}
           >
-            Email me about new drops
+            Email/SMS me about new drops
           </Checkbox>
-          {phone && (
-            <Checkbox
-              id="pref-sms"
-              checked={form.smsOptIn}
-              onChange={(e) => set('smsOptIn', e.target.checked)}
-            >
-              SMS updates
-            </Checkbox>
-          )}
         </section>
 
         <div className="hidden md:block">

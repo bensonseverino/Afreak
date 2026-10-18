@@ -17,4 +17,8 @@ export function makeQueryClient() {
   });
 }
 
-export default makeQueryClient;
+// A single client for the app. Exported so non-React modules (`lib/api.js`) can
+// clear cached account data from an error handler without a hook.
+export const queryClient = makeQueryClient();
+
+export default queryClient;

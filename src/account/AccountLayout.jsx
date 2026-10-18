@@ -29,17 +29,17 @@ function pageTitle(pathname) {
  *  <640   sticky back bar on sub-pages; Overview renders its own menu list
  */
 export default function AccountLayout() {
-  const { data, isLoading } = useMe();
-  const { mutate: logout, isPending } = useLogout();
+  const { data, isPending } = useMe();
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const location = useLocation();
   const navigate = useNavigate();
 
   useNoIndex();
 
   const customer = data?.customer;
-  if (!isLoading && !customer) {
+  if (!isPending && !customer) {
     const next = encodeURIComponent(location.pathname);
-    return <Navigate to={`/sign-in?next=${next}`} replace />;
+    return <Navigate to={`/account/login?next=${next}`} replace />;
   }
 
   const onSignOut = () =>
@@ -63,7 +63,7 @@ export default function AccountLayout() {
                     {initial}
                   </span>
                   <div className="min-w-0">
-                    {isLoading ? (
+                    {isPending ? (
                       <>
                         <Skeleton className="h-4 w-28" />
                         <Skeleton className="h-3 w-36 mt-2" />
@@ -106,11 +106,11 @@ export default function AccountLayout() {
                 <button
                   type="button"
                   onClick={onSignOut}
-                  disabled={isPending}
+                  disabled={isLoggingOut}
                   className="mt-4 w-full flex items-center gap-3 px-3 h-11 font-sans font-semibold uppercase text-[13px] tracking-label text-graphite hover:text-ink border-t border-line pt-4 disabled:opacity-50"
                 >
                   <Icon name="logout" size={18} />
-                  {isPending ? 'Signing out…' : 'Sign out'}
+                  {isLoggingOut ? 'Signing out…' : 'Sign out'}
                 </button>
               </div>
             </div>

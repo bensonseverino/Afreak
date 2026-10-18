@@ -31,7 +31,7 @@ export default function MobileMenu() {
   const { count, openDrawer } = useCart();
   const location = useLocation();
   const { categories } = useCategories();
-  const { signedIn, me, user } = useIsSignedIn();
+  const { signedIn, loading, me } = useIsSignedIn();
   const logout = useLogout();
   const isTablet = useMediaQuery('(min-width: 768px)');
   const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -61,7 +61,7 @@ export default function MobileMenu() {
     [categories]
   );
 
-  const firstName = me?.customer?.firstName || user?.firstName || '';
+  const firstName = me?.customer?.firstName || '';
 
   /* ---------------- open / close state machine ---------------- */
   useEffect(() => {
@@ -297,19 +297,24 @@ export default function MobileMenu() {
             <ul className="grid grid-cols-2 gap-x-6 gap-y-1">
               <li>
                 <Link
-                  to={signedIn ? '/account' : '/sign-in'}
+                  to={signedIn ? '/account' : '/account/login'}
                   replace
                   onClick={closeMenu}
                   className="flex min-h-11 items-center font-sans text-[13px] font-semibold uppercase tracking-label text-white/80 transition-colors hover:text-volt"
                 >
-                  {signedIn && firstName ? `Hi, ${firstName}` : signedIn ? 'Your account' : 'Sign in'}
+                  {loading
+                    ? 'Account'
+                    : signedIn
+                      ? firstName
+                        ? `Hi, ${firstName}`
+                        : 'Your account'
+                      : 'Sign in'}
                 </Link>
               </li>
-              {/* Clerk is the only way in, so offer both doors while signed out. */}
               {!signedIn && (
                 <li>
                   <Link
-                    to="/sign-up"
+                    to="/account/sign-up"
                     replace
                     onClick={closeMenu}
                     className="flex min-h-11 items-center font-sans text-[13px] font-semibold uppercase tracking-label text-white/80 transition-colors hover:text-volt"
