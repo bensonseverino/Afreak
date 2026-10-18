@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { products, categories, colors, colorHex, formatPrice, getProductsByCategory } from '../data/products';
 import FilterSidebar from '../components/shop/FilterSidebar';
 import SortSelect from '../components/shop/SortSelect';
@@ -22,13 +22,25 @@ const sortOptions = [
 ];
 
 export default function Shop({ category: categoryParam }) {
+  const [searchParams] = useSearchParams();
+
+  // URL facets drive the grid, so every link into /shop is shareable:
+  //   ?category=hoodies · ?new=1 · ?customizable=1 · ?q=hoodie
+  const urlCategory = searchParams.get('category') || categoryParam || '';
+  const urlQuery = searchParams.get('q') || '';
+  const urlNew = searchParams.get('new') === '1';
+  const urlCustomizable = searchParams.get('customizable') === '1';
+
   const [filters, setFilters] = useState({
-    category: categoryParam ? [categoryParam] : [],
+    category: urlCategory ? [urlCategory] : [],
     color: null,
     size: [],
     price: null,
+    newOnly: urlNew,
+    customizable: urlCustomizable,
+    q: urlQuery,
   });
-  const [sortBy, setSortBy] = useState('popular');
+  const [sortBy, setSortBy] = useState(urlNew ? 'newest' : 'popular');
   const [currentPage, setCurrentPage] = useState(1);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -37,12 +49,32 @@ export default function Shop({ category: categoryParam }) {
     setCurrentPage(1);
   }, [filters, sortBy]);
 
+  // Re-seed when a link (header, menu, footer) changes the URL facets.
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      category: urlCategory ? [urlCategory] : [],
+      newOnly: urlNew,
+      customizable: urlCustomizable,
+      q: urlQuery,
+    }));
+    if (urlNew) setSortBy('newest');
+  }, [urlCategory, urlQuery, urlNew, urlCustomizable]);
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const clearAllFilters = () => {
-    setFilters({ category: [], color: null, size: [], price: null });
+    setFilters({
+      category: [],
+      color: null,
+      size: [],
+      price: null,
+      newOnly: false,
+      customizable: false,
+      q: '',
+    });
   };
 
   const activeChips = useMemo(() => {
@@ -65,6 +97,15 @@ export default function Shop({ category: categoryParam }) {
     if (filters.price) {
       chips.push({ key: 'price', label: `€${filters.price.from} - €${filters.price.to}` });
     }
+    if (filters.newOnly) {
+      chips.push({ key: 'new', label: 'NEW ARRIVALS' });
+    }
+    if (filters.customizable) {
+      chips.push({ key: 'customizable', label: 'CUSTOM PRINT' });
+    }
+    if (filters.q) {
+      chips.push({ key: 'q', label: `“${filters.q.toUpperCase()}”` });
+    }
     return chips;
   }, [filters]);
 
@@ -75,6 +116,24 @@ export default function Shop({ category: categoryParam }) {
     // Category filter
     if (filters.category?.length) {
       result = result.filter(p => filters.category.includes(p.category));
+    }
+
+    // New arrivals
+    if (filters.newOnly) {
+      result = result.filter(p => p.isNew);
+    }
+
+    // Custom-print eligible
+    if (filters.customizable) {
+      result = result.filter(p => p.customizable);
+    }
+
+    // Free-text search
+    if (filters.q) {
+      const needle = filters.q.trim().toLowerCase();
+      result = result.filter(
+        p => p.name.toLowerCase().includes(needle) || p.category.toLowerCase().includes(needle)
+      );
     }
 
     // Color filter
@@ -118,9 +177,19 @@ export default function Shop({ category: categoryParam }) {
     return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredProducts, currentPage]);
 
-  const categoryName = categoryParam 
-    ? categories.find(c => c.slug === categoryParam)?.name?.toUpperCase() 
+  const activeCategorySlug = filters.category?.length === 1 ? filters.category[0] : null;
+  const categoryName = activeCategorySlug
+    ? (categories.find(c => c.slug === activeCategorySlug)?.name?.toUpperCase() || activeCategorySlug.toUpperCase())
     : 'ALL PRODUCTS';
+
+  const paginationQuery = [
+    activeCategorySlug ? `category=${activeCategorySlug}` : '',
+    filters.q ? `q=${encodeURIComponent(filters.q)}` : '',
+    filters.newOnly ? 'new=1' : '',
+    filters.customizable ? 'customizable=1' : '',
+  ]
+    .filter(Boolean)
+    .join('&');
 
   return (
     <div className="min-h-screen bg-paper">
@@ -135,12 +204,12 @@ export default function Shop({ category: categoryParam }) {
             <li>
               <Link to="/shop" className="text-graphite hover:text-ink transition-colors link-underline">SHOP</Link>
             </li>
-            {categoryParam && (
+            {categoryParam || activeCategorySlug ? (
               <>
                 <li className="text-graphite">/</li>
                 <li className="text-ink font-medium uppercase tracking-label">{categoryName}</li>
               </>
-            )}
+            ) : null}
           </ol>
         </div>
       </nav>
@@ -184,6 +253,12 @@ export default function Shop({ category: categoryParam }) {
                   handleFilterChange('size', filters.size.filter(s => s !== size));
                 } else if (key === 'price') {
                   handleFilterChange('price', null);
+                } else if (key === 'new') {
+                  handleFilterChange('newOnly', false);
+                } else if (key === 'customizable') {
+                  handleFilterChange('customizable', false);
+                } else if (key === 'q') {
+                  handleFilterChange('q', '');
                 }
               }} />
             </div>
@@ -200,7 +275,8 @@ export default function Shop({ category: categoryParam }) {
                 <Pagination 
                   currentPage={currentPage} 
                   totalPages={totalPages} 
-                  baseUrl={categoryParam ? `/shop/${categoryParam}` : '/shop'}
+                  baseUrl="/shop"
+                  query={paginationQuery}
                 />
               </div>
             )}

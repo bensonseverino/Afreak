@@ -58,8 +58,13 @@ codes, mock sessions, `hash()`-based tokens) has been removed.
 * `src/account/RequireCustomer.jsx` gates `/account/*` on the Clerk session and
   forwards the intended page via `?next=`, so visitors land where they were
   heading after signing in.
-* The navbar shows Clerk's `<UserButton>` when signed in (with a "Your account"
-  menu link into the dashboard) and a sign-in link when signed out.
+* On tablet and up the header carries our own account dropdown
+  (`src/components/layout/UserMenu.jsx`) rather than Clerk's popover, so every
+  entry lands on a dashboard page: signed in it shows the name and email plus
+  **Profile** (`/account/profile`), **Orders**, **Wishlist** and **Sign out**;
+  signed out it offers **Sign in** / **Create account**. It closes on Escape
+  (focus returns to the trigger), a press outside, focus leaving the control, or
+  a route change. Below 768px the same entries live in the hamburger menu.
 
 ### Identity → account data
 
@@ -89,6 +94,44 @@ overwrite the seeded ones, and every later Clerk user gets a fresh, empty accoun
 
 To reset the mock data, clear the `afreak.account.db.v3` key in `localStorage`.
 
+## Navigation
+
+`src/config/nav.js` is the single source of truth for links: the desktop nav,
+the mobile/tablet menu and the menu footer all read from it.
+
+**Mobile & tablet menu** (`AFREAK_HAMBURGER_MENU_SPEC.md`) — shown below 1024px,
+never rendered at `lg` and up:
+
+* `<768px` full-screen black takeover sliding in from the left; `768–1023px`
+  480px left drawer over a scrim.
+* Black `bg-ink` panel, numbered oversized Archivo links, hairline dividers,
+  `volt` on the active row and on the pressed/hover slice. Square corners,
+  no shadows.
+* Contents: underline search, SHOP accordion (all products / new arrivals +
+  live categories), the primary links, secondary links (wishlist, orders, help,
+  sign in / out), a promo tile and a shipping/socials footer.
+* Categories come from `GET /categories` through TanStack Query
+  (`staleTime` 5 min) and are prefetched on hamburger hover/press/focus and on
+  first idle below 1024px — the panel always paints immediately from the static
+  fallback in `src/data/products.js`, so there is no skeleton.
+* Data comes from `GET /settings/public` (`shipping.threshold_cents`,
+  `menu_feature`), also with a built-in fallback.
+* Behaviour: Escape, browser Back/Android back gesture (a history entry is
+  pushed while open), route change, scrim tap, swipe-left (>60px or fast) and
+  the viewport growing to `lg` all close it. Focus moves to the close button and
+  returns to the hamburger; the menu and the cart drawer are mutually exclusive.
+* Menu links navigate with `replace`, so a tap consumes the history entry the
+  menu pushed and the Back button still returns to the page the visitor was on.
+
+`/shop` reads its facets from the query string, which is what the menu,
+footer and header links target: `?category=<slug>`, `?new=1`,
+`?customizable=1` and `?q=<search>`. All are shareable and combine with the
+sidebar filters.
+
+**Z-index ladder** (CSS custom properties in `src/index.css`, keep new overlays
+on it): header `40` · sticky bars `45` · menu scrim `60` · menu panel `70` ·
+cart drawer `80` · modals/sheets `90` · toasts `100`.
+
 ## Mock backend
 
 `src/lib/api.js` dispatches to `src/lib/mockBackend.js` when `VITE_API_BASE` is
@@ -100,7 +143,8 @@ Implemented routes: `GET|PATCH /account/me`, `GET /account/overview`,
 `POST /account/orders/:number/reorder`, `POST /account/orders/:number/return`,
 `GET|PUT|DELETE /account/wishlist[/:productId]`, `GET|POST|DELETE /account/addresses`,
 `GET|POST|DELETE /account/payment-methods`, `GET /account/export`,
-`DELETE /account`, `POST /orders`.
+`DELETE /account`, `POST /orders`, plus the public `GET /categories` and
+`GET /settings/public` used by the mobile menu.
 
 ### localStorage keys
 
@@ -133,3 +177,8 @@ Implemented routes: `GET|PATCH /account/me`, `GET /account/overview`,
 * No real payment provider — cards are validated, never charged.
 * Only a Clerk **development** instance is configured; production keys and a
   deployment are still to do. New-device sign-ins therefore ask for an email code.
+* The mobile menu's promo tile is a placeholder — `menu_feature.mediaId` is
+  returned by the mock but there is no media library yet.
+* The header search icon (`/search`) and the menu's help links (`/size-guide`,
+  `/shipping-returns`, `/faq`) have no routes yet and land on the 404 page;
+  in-menu product search itself does work (`/shop?q=`).

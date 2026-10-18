@@ -14,7 +14,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col bg-paper">
       <PromoBar />
       <Navbar />
-      <main className="flex-1 pt-[80px]">
+      <main className="flex-1 pt-16 md:pt-[72px] lg:pt-20">
         <Outlet />
       </main>
       <Footer />

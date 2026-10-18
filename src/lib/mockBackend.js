@@ -16,7 +16,7 @@
  *  - The first Clerk user adopts the seeded demo account (`seed: true`) so the
  *    dashboard has content to show before a real backend exists.
  */
-import { products } from '../data/products';
+import { products, categories } from '../data/products';
 import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, EXPRESS_SHIPPING } from '../utils/shipping';
 import { getIdentity } from './identity';
 
@@ -880,6 +880,33 @@ const handlers = {
     save(db);
     return { ok: true };
   },
+
+  /* ---------------------------------------------------------------- *
+   * Public storefront data (menu, footer). No auth required.
+   * ---------------------------------------------------------------- */
+  'GET /categories': () =>
+    categories
+      .filter((category) => category.slug !== 'all')
+      .map((category) => ({
+        slug: category.slug,
+        name: category.name,
+        count: category.count,
+      })),
+
+  'GET /settings/public': () => ({
+    shipping: {
+      threshold_cents: cents(FREE_SHIPPING_THRESHOLD),
+      flat_cents: cents(FLAT_SHIPPING),
+      express_cents: cents(EXPRESS_SHIPPING),
+      free_over_threshold: true,
+    },
+    menu_feature: {
+      eyebrow: 'New collection SS26',
+      title: 'Shop the drop',
+      url: '/shop?new=1',
+      mediaId: null,
+    },
+  }),
 
   // Public: the storefront checkout creates orders here so they show up in the
   // account afterwards (guest orders link when a customer's email/phone matches).

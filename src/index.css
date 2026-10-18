@@ -117,6 +117,22 @@ img {
   animation: afreak-shake 0.4s ease-in-out;
 }
 
+/* Header account dropdown */
+@keyframes afreak-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-dropdown-in {
+  animation: afreak-dropdown-in 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -128,6 +144,154 @@ img {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Durations are neutralised above; the staggered menu delay must go too. */
+  .menu-item {
+    animation-delay: 0ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Hamburger menu — mobile & tablet (spec: AFREAK_HAMBURGER_MENU_SPEC.md)
+ *
+ * Z-index ladder (§4.4) — keep every overlay on this scale:
+ *   header 40 · sticky bars 45 · menu scrim 60 · menu panel 70
+ *   cart drawer 80 · modals/sheets 90 · toasts 100
+ * ------------------------------------------------------------------ */
+:root {
+  --z-header: 40;
+  --z-sticky: 45;
+  --z-scrim: 60;
+  --z-menu: 70;
+  --z-drawer: 80;
+  --z-modal: 90;
+  --z-toast: 100;
+}
+
+/* Scrim (tablet only) */
+.menu-scrim {
+  animation: menu-scrim-in 240ms ease-out both;
+}
+
+.menu-scrim[data-state='closing'] {
+  animation: menu-scrim-out 220ms ease-in both;
+}
+
+/* Panel: transform is owned here so the swipe-to-close gesture can drive it
+   inline without fighting a utility class. The entering state uses a keyframe
+   (reliable on mount); once open, inline transforms are free for the gesture. */
+.menu-panel {
+  transform: translateX(-100%);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-panel[data-state='entering'] {
+  animation: menu-panel-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+.menu-panel[data-state='open'] {
+  transform: none;
+}
+
+.menu-panel[data-state='closing'] {
+  transform: translateX(-100%);
+  transition: transform 220ms ease-in;
+  pointer-events: none;
+}
+
+/* Volt focus ring reads on the black panel (§7) */
+.menu-panel :focus-visible {
+  outline-color: var(--color-volt);
+  outline-offset: 4px;
+}
+
+/* Content reveal: 45ms stagger, 120ms after open, capped ~500ms (§4.1) */
+.menu-item {
+  opacity: 0;
+}
+
+[data-state='entering'] .menu-item,
+[data-state='open'] .menu-item {
+  animation: menu-item-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: min(calc(var(--i, 0) * 45ms + 120ms), 500ms);
+}
+
+[data-state='closing'] .menu-item {
+  animation: menu-item-out 120ms ease both;
+}
+
+@keyframes menu-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes menu-scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes menu-panel-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes menu-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes menu-item-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Hover states only where a pointer exists (§3.4) */
+@media (hover: hover) {
+  .menu-primary a:hover .menu-label,
+  .menu-primary a:focus-visible .menu-label {
+    color: var(--color-volt);
+    transform: translateX(6px);
+  }
+
+  .menu-primary a:hover .menu-index,
+  .menu-primary a:focus-visible .menu-index {
+    color: var(--color-volt);
+  }
+}
+
+/* Landscape phones / short viewports (§5) */
+@media (max-height: 520px) {
+  .menu-primary a,
+  .menu-primary button {
+    font-size: 1.875rem;
+    min-height: 52px;
+  }
+
+  .menu-feature {
+    display: none;
   }
 }
 

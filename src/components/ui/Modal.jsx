@@ -15,7 +15,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4" style={{ zIndex: 'var(--z-modal)' }} role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-ink/50" onClick={onClose} />
       <div
         ref={panelRef}

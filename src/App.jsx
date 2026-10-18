@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/react';
 import { clerkAppearance } from './lib/clerkAppearance';
 import { AccountProvider } from './context/AccountContext';
 import { CartProvider } from './context/CartContext';
+import { UIProvider, useUI } from './context/UIContext';
 import { WishlistProvider } from './context/WishlistContext';
 import Layout from './components/layout/Layout';
 import CartDrawer from './components/cart/CartDrawer';
@@ -34,6 +35,9 @@ const Addresses = lazy(() => import('./account/pages/Addresses'));
 const Wishlist = lazy(() => import('./account/pages/Wishlist'));
 const Profile = lazy(() => import('./account/pages/Profile'));
 const Security = lazy(() => import('./account/pages/Security'));
+
+// Mobile/tablet menu: its own chunk, mounted only once the hamburger is used (§8).
+const MobileMenu = lazy(() => import('./components/layout/MobileMenu'));
 
 // Clerk needs the router so its internal navigation stays client-side.
 function ClerkWithRouter({ children }) {
@@ -82,70 +86,90 @@ function RouteFallback() {
   );
 }
 
+/**
+ * Overlays that live outside the page tree: the mobile/tablet menu (portal) and
+ * the cart drawer. The menu stays unmounted until it is first opened.
+ */
+function Overlays() {
+  const { hasOpenedMenu } = useUI();
+  return (
+    <>
+      {hasOpenedMenu && (
+        <Suspense fallback={null}>
+          <MobileMenu />
+        </Suspense>
+      )}
+      <CartDrawer />
+    </>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <ClerkWithRouter>
         <AccountProvider>
           <CartProvider>
-            <WishlistProvider>
-              <ScrollToTop />
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  {/* Checkout uses its own minimal chrome. */}
-                  <Route path="/checkout" element={<Checkout />} />
+            <UIProvider>
+              <WishlistProvider>
+                <ScrollToTop />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    {/* Checkout uses its own minimal chrome. */}
+                    <Route path="/checkout" element={<Checkout />} />
 
-                  {/* Auth: Clerk-hosted, full-screen two-panel design, own chrome. */}
-                  <Route path="/sign-in/*" element={<SignIn />} />
-                  <Route path="/sign-up/*" element={<SignUp />} />
-                  <Route path="/account/login" element={<LegacyLoginRedirect />} />
+                    {/* Auth: Clerk-hosted, full-screen two-panel design, own chrome. */}
+                    <Route path="/sign-in/*" element={<SignIn />} />
+                    <Route path="/sign-up/*" element={<SignUp />} />
+                    <Route path="/account/login" element={<LegacyLoginRedirect />} />
 
-                  {/* Print-friendly invoice: standalone so the printout has no nav/footer. */}
-                  <Route
-                    path="/account/orders/:number/invoice"
-                    element={
-                      <RequireCustomer>
-                        <Invoice />
-                      </RequireCustomer>
-                    }
-                  />
-
-                  <Route element={<Layout />}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/shop" element={<Shop />} />
-                    <Route path="/shop/:category" element={<Shop />} />
-                    <Route path="/product/:slug" element={<ProductDetail />} />
-                    <Route path="/lookbook" element={<Lookbook />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/journal" element={<Journal />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout/success" element={<OrderSuccess />} />
-
+                    {/* Print-friendly invoice: standalone so the printout has no nav/footer. */}
                     <Route
-                      path="/account"
+                      path="/account/orders/:number/invoice"
                       element={
                         <RequireCustomer>
-                          <AccountLayout />
+                          <Invoice />
                         </RequireCustomer>
                       }
-                    >
-                      <Route index element={<AccountOverview />} />
-                      <Route path="orders" element={<OrdersList />} />
-                      <Route path="orders/:number" element={<OrderDetail />} />
-                      <Route path="payment-methods" element={<PaymentMethods />} />
-                      <Route path="addresses" element={<Addresses />} />
-                      <Route path="wishlist" element={<Wishlist />} />
-                      <Route path="profile" element={<Profile />} />
-                      <Route path="security" element={<Security />} />
-                    </Route>
+                    />
 
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-              <CartDrawer />
-            </WishlistProvider>
+                    <Route element={<Layout />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/shop" element={<Shop />} />
+                      <Route path="/shop/:category" element={<Shop />} />
+                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route path="/lookbook" element={<Lookbook />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/journal" element={<Journal />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout/success" element={<OrderSuccess />} />
+
+                      <Route
+                        path="/account"
+                        element={
+                          <RequireCustomer>
+                            <AccountLayout />
+                          </RequireCustomer>
+                        }
+                      >
+                        <Route index element={<AccountOverview />} />
+                        <Route path="orders" element={<OrdersList />} />
+                        <Route path="orders/:number" element={<OrderDetail />} />
+                        <Route path="payment-methods" element={<PaymentMethods />} />
+                        <Route path="addresses" element={<Addresses />} />
+                        <Route path="wishlist" element={<Wishlist />} />
+                        <Route path="profile" element={<Profile />} />
+                        <Route path="security" element={<Security />} />
+                      </Route>
+
+                      <Route path="*" element={<NotFound />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+                <Overlays />
+              </WishlistProvider>
+            </UIProvider>
           </CartProvider>
         </AccountProvider>
       </ClerkWithRouter>

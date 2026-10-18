@@ -1,136 +1,110 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Show, UserButton } from '@clerk/react';
+import { useQueryClient } from '@tanstack/react-query';
 import Icon from '../ui/Icon';
+import HamburgerButton from './HamburgerButton';
+import UserMenu from './UserMenu';
 import { useCart } from '../../context/CartContext';
+import { useUI } from '../../context/UIContext';
+import { isNavActive, primaryNav } from '../../config/nav';
+import { prefetchMenuData } from '../../hooks/useMenuData';
 
-const navLinks = [
-  { label: 'SHOP', href: '/shop' },
-  { label: 'LOOKBOOK', href: '/lookbook' },
-  { label: 'ABOUT', href: '/about' },
-  { label: 'JOURNAL', href: '/journal' },
-  { label: 'CONTACT', href: '/contact' },
-];
-
-// Warm the account chunk on hover/tap-start (spec §9).
-function preheatAccount() {
-  import('../../account/AccountLayout');
-}
-
+/**
+ * Storefront header (spec §2).
+ *   <1024px  hamburger · AFREAK · bag (tablet adds search + account)
+ *   ≥1024px  AFREAK · centred nav · search · account · bag
+ */
 export default function Navbar() {
   const location = useLocation();
   const { count, openDrawer } = useCart();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { menuOpen, openMenu, menuTriggerRef } = useUI();
+  const queryClient = useQueryClient();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isHomePage, setIsHomePage] = useState(true);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Warm the menu queries on first idle so the first open is always instant (§8).
+  // Desktop never renders the menu, so don't spend requests there.
   useEffect(() => {
-    setIsHomePage(location.pathname === '/');
-  }, [location.pathname]);
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape' && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
+    if (!window.matchMedia('(max-width: 1023.98px)').matches) return;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(() => prefetchMenuData(queryClient));
+      return () => window.cancelIdleCallback(id);
     }
-  };
+    const timer = window.setTimeout(() => prefetchMenuData(queryClient), 1200);
+    return () => window.clearTimeout(timer);
+  }, [queryClient]);
 
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [isMobileMenuOpen]);
-
+  const isHomePage = location.pathname === '/';
   const showBorder = !isHomePage || isScrolled;
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-40 h-[80px] bg-paper/95 backdrop-blur transition-all duration-200 ${showBorder ? 'border-b border-line' : ''}`}>
-      <div className="max-w-wide mx-auto px-6 lg:px-8 h-full flex items-center justify-between">
-        {/* Mobile Hamburger */}
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="lg:hidden w-11 h-11 flex items-center justify-center text-ink"
-          aria-label="Open menu"
-          aria-expanded={isMobileMenuOpen}
-        >
-          <Icon name="menu" size={24} />
-        </button>
+    <header
+      className={`fixed inset-x-0 top-0 z-[var(--z-header)] bg-paper/95 backdrop-blur transition-colors duration-200 ${
+        showBorder ? 'border-b border-line' : ''
+      }`}
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <div className="relative max-w-wide mx-auto h-16 px-4 sm:px-6 md:h-[72px] lg:h-20 lg:px-8 flex items-center justify-between gap-2">
+        {/* Left: hamburger (< lg) or wordmark (≥ lg) */}
+        <div className="flex items-center min-w-0 lg:flex-1">
+          <HamburgerButton ref={menuTriggerRef} open={menuOpen} onClick={openMenu} />
+          <Link
+            to="/"
+            className="hidden lg:inline font-display font-extrabold uppercase text-2xl tracking-tight text-ink"
+            aria-label="AFREAK Home"
+          >
+            AFREAK
+          </Link>
+        </div>
 
-        {/* Logo */}
-        <Link 
-          to="/" 
-          className="font-display font-extrabold uppercase text-2xl tracking-tight text-ink flex-shrink-0 lg:ml-0"
+        {/* Centre: wordmark on mobile/tablet */}
+        <Link
+          to="/"
+          className="lg:hidden absolute left-1/2 -translate-x-1/2 font-display font-extrabold uppercase tracking-tight text-ink text-xl md:text-2xl"
           aria-label="AFREAK Home"
         >
           AFREAK
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Centre: desktop navigation (same config as the menu) */}
         <nav className="hidden lg:flex items-center gap-10" aria-label="Main navigation">
-          {navLinks.map(link => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className={`font-sans font-medium uppercase text-xs tracking-label transition-colors relative ${location.pathname === link.href ? 'text-ink' : 'text-graphite hover:text-ink'}`}
-              aria-current={location.pathname === link.href ? 'page' : undefined}
-            >
-              {link.label}
-              {location.pathname === link.href && (
-                <span className="absolute bottom-[-6px] left-0 right-0 h-[1px] bg-ink" />
-              )}
-            </Link>
-          ))}
-          <Link
-            to="/shop"
-            className="font-sans font-medium uppercase text-xs tracking-label text-graphite hover:text-ink transition-colors"
-          >
-            CUSTOM PRINT
-          </Link>
+          {primaryNav.map((link) => {
+            const active = isNavActive(link.to, location);
+            return (
+              <Link
+                key={link.label}
+                to={link.to}
+                className={`font-sans font-medium uppercase text-xs tracking-label transition-colors relative ${
+                  active ? 'text-ink' : 'text-graphite hover:text-ink'
+                }`}
+                aria-current={active ? 'page' : undefined}
+              >
+                {link.label}
+                {active && <span className="absolute bottom-[-6px] left-0 right-0 h-[1px] bg-ink" />}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Right Icons */}
-        <div className="flex items-center gap-6">
-          <Link to="/search" className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors" aria-label="Search">
+        {/* Right: search + account (tablet up), bag */}
+        <div className="flex items-center gap-2 md:gap-4 lg:flex-1 lg:justify-end">
+          <Link
+            to="/search"
+            className="hidden md:flex w-11 h-11 items-center justify-center text-ink hover:text-graphite transition-colors"
+            aria-label="Search"
+          >
             <Icon name="search" size={24} />
           </Link>
-          <Show when="signed-out">
-            <Link
-              to="/sign-in"
-              onPointerEnter={preheatAccount}
-              onTouchStart={preheatAccount}
-              className="w-11 h-11 flex items-center justify-center text-ink hover:text-graphite transition-colors"
-              aria-label="Sign in"
-            >
-              <Icon name="user" size={24} />
-            </Link>
-          </Show>
-          <Show when="signed-in">
-            <UserButton>
-              <UserButton.MenuItems>
-                <UserButton.Link
-                  label="Your account"
-                  labelIcon={<Icon name="user" size={16} />}
-                  href="/account"
-                />
-              </UserButton.MenuItems>
-            </UserButton>
-          </Show>
+          <UserMenu />
           <button
             type="button"
             onClick={openDrawer}
-            className="relative w-11 h-11 flex items-center justify-center text-ink transition-colors hover:text-graphite"
+            className="relative w-11 h-11 -mr-2 flex items-center justify-center text-ink transition-colors hover:text-graphite"
             aria-label={`Open shopping bag${count > 0 ? `, ${count} items` : ''}`}
           >
             <Icon name="bag" size={24} />
@@ -142,73 +116,6 @@ export default function Navbar() {
           </button>
         </div>
       </div>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 z-50 bg-paper lg:hidden" 
-          role="dialog" 
-          aria-modal="true" 
-          aria-label="Navigation menu"
-        >
-          <div className="flex h-full flex-col">
-            <div className="h-[80px] flex items-center justify-end px-6 border-b border-line">
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-11 h-11 flex items-center justify-center text-ink"
-                aria-label="Close menu"
-              >
-                <Icon name="close" size={24} />
-              </button>
-            </div>
-            <nav className="flex-1 py-12 px-6 overflow-y-auto" aria-label="Mobile navigation">
-              <ul className="space-y-6">
-                {navLinks.map(link => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`block font-display font-bold uppercase text-4xl tracking-tight transition-colors ${location.pathname === link.href ? 'text-ink' : 'text-graphite hover:text-ink'}`}
-                      aria-current={location.pathname === link.href ? 'page' : undefined}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <Link
-                    to="/shop"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block font-display font-bold uppercase text-4xl tracking-tight text-graphite hover:text-ink transition-colors"
-                  >
-                    CUSTOM PRINT
-                  </Link>
-                </li>
-                <li>
-                  <Show when="signed-in">
-                    <Link
-                      to="/account"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block font-display font-bold uppercase text-4xl tracking-tight text-graphite hover:text-ink transition-colors"
-                    >
-                      Account
-                    </Link>
-                  </Show>
-                  <Show when="signed-out">
-                    <Link
-                      to="/sign-in"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block font-display font-bold uppercase text-4xl tracking-tight text-graphite hover:text-ink transition-colors"
-                    >
-                      Sign in
-                    </Link>
-                  </Show>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

@@ -29,7 +29,7 @@ export default function Drawer({ open, onClose, title, children, footer, variant
       : 'border-t border-line md:border-t-0 md:border-l md:border-line';
 
   return (
-    <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0" style={{ zIndex: 'var(--z-drawer)' }} role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-ink/50" onClick={onClose} />
       <div
         ref={panelRef}

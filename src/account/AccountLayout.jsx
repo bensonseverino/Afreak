@@ -120,7 +120,7 @@ export default function AccountLayout() {
           <div className="min-w-0 max-w-3xl lg:max-w-none">
             {/* Mobile back bar — sub-pages only */}
             {!isIndex && (
-              <div className="md:hidden sticky top-[80px] z-20 -mx-4 px-4 h-14 bg-paper border-b border-line flex items-center gap-3 mb-5">
+              <div className="md:hidden sticky top-16 z-20 -mx-4 px-4 h-14 bg-paper border-b border-line flex items-center gap-3 mb-5">
                 <Link to="/account" aria-label="Back to account" className="w-10 h-10 -ml-2 flex items-center justify-center text-ink">
                   <Icon name="arrowLeft" size={20} />
                 </Link>
