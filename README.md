@@ -64,7 +64,8 @@ codes, mock sessions, `hash()`-based tokens) has been removed.
   **Profile** (`/account/profile`), **Orders**, **Wishlist** and **Sign out**;
   signed out it offers **Sign in** / **Create account**. It closes on Escape
   (focus returns to the trigger), a press outside, focus leaving the control, or
-  a route change. Below 768px the same entries live in the hamburger menu.
+  a route change. Below 768px the same entries live in the hamburger menu
+  (signed out it offers **Sign in** and **Create account**).
 
 ### Identity → account data
 
@@ -74,6 +75,13 @@ clears the react-query cache when the session ends or the user changes. The mock
 API's `resolveCustomer()` reads that identity, then finds, provisions or adopts the
 matching customer row. `useMe()` (`src/hooks/useCustomer.js`) is gated on
 `isLoaded && isSignedIn` and keyed by `userId`.
+
+Accounts are also mirrored server-side. Clerk posts `user.created` /
+`user.updated` / `user.deleted` to the backend's `/api/webhooks/clerk`, which
+verifies the Svix signature and upserts a row into its `customers` table (the CMS
+exposes it read-only at `/admin/customers`). That sync is independent of the mock
+account API here, which remains the source of the dashboard's orders, addresses
+and wishlist.
 
 Account surfaces that map onto Clerk rather than the mock:
 
@@ -171,6 +179,9 @@ Implemented routes: `GET|PATCH /account/me`, `GET /account/overview`,
 
 ## Known gaps
 
+* **Account data is still browser-local.** The backend holds a synced
+  `customers` row (identity fields only); orders, addresses, payment methods and
+  the wishlist are not served by the API yet.
 * **Checkout is client-side only.** It validates the form and hands the order to
   the success page; it does not post to the account API, so guest/signed-in
   checkout is not yet linked to the dashboard's order history.

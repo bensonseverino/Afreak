@@ -305,6 +305,19 @@ export default function MobileMenu() {
                   {signedIn && firstName ? `Hi, ${firstName}` : signedIn ? 'Your account' : 'Sign in'}
                 </Link>
               </li>
+              {/* Clerk is the only way in, so offer both doors while signed out. */}
+              {!signedIn && (
+                <li>
+                  <Link
+                    to="/sign-up"
+                    replace
+                    onClick={closeMenu}
+                    className="flex min-h-11 items-center font-sans text-[13px] font-semibold uppercase tracking-label text-white/80 transition-colors hover:text-volt"
+                  >
+                    Create account
+                  </Link>
+                </li>
+              )}
               {secondaryNav.map((item) => (
                 <li key={item.label}>
                   <Link
