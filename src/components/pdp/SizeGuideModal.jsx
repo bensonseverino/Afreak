@@ -5,6 +5,11 @@ const unitLabel = (unit) => {
   return unit === 'inches' ? 'in' : unit;
 };
 
+const unitWord = (unit) => {
+  if (!unit) return '';
+  return unit === 'inches' ? 'inches' : unit;
+};
+
 /**
  * Renders the size chart assigned to the product in the CMS.
  * Charts are garment-side measurement tables (sizes across the columns).
@@ -15,6 +20,7 @@ export default function SizeGuideModal({ open, onClose, chart }) {
     chart?.measurements && typeof chart.measurements === 'object' ? chart.measurements : {};
   const measurementNames = Object.keys(measurements);
   const unit = unitLabel(chart?.unit);
+  const unitText = unitWord(chart?.unit);
 
   return (
     <Modal open={open} onClose={onClose} title="Size guide" size="lg">
@@ -26,7 +32,7 @@ export default function SizeGuideModal({ open, onClose, chart }) {
         <>
           <p className="font-sans text-[13px] font-medium text-ink mb-1">{chart.title}</p>
           <p className="text-[13px] text-graphite mb-4">
-            Garment measurements{unit ? ` in ${unit}` : ''}, measured flat. Compare with a piece
+            Garment measurements{unitText ? ` in ${unitText}` : ''}, measured flat. Compare with a piece
             you already own for the best fit.
           </p>
           <div className="overflow-x-auto">
