@@ -289,7 +289,11 @@ export default function ProductDetail() {
         onClose={() => setModal(null)}
         onSave={(p) => setPrint(p)}
       />
-      <SizeGuideModal open={modal === 'sizeGuide'} onClose={() => setModal(null)} />
+      <SizeGuideModal
+        open={modal === 'sizeGuide'}
+        chart={product.sizeChart}
+        onClose={() => setModal(null)}
+      />
     </div>
   );
 }

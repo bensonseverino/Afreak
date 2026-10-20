@@ -81,6 +81,7 @@ export function detailToProduct(detail) {
     rating: detail.rating?.average ?? 0,
     reviewCount: detail.rating?.count ?? 0,
     ratingDistribution: detail.rating?.distribution ?? null,
+    sizeChart: detail.sizeChart ?? null,
     images: (detail.images ?? []).map((img) => assetUrl(img.url)).filter(Boolean),
     colors: detail.colors ?? [],
     sizes: sizesForColor(detail, null),
