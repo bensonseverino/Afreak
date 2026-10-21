@@ -3,7 +3,8 @@ import Placeholder from '../ui/Placeholder';
 import Badge from '../ui/Badge';
 import ColorDots from '../ui/ColorDots';
 import Icon from '../ui/Icon';
-import { formatPrice, colorHex } from '../../data/products';
+import Price from '../ui/Price';
+import { colorHex } from '../../data/products';
 import { useWishlist } from '../../hooks/useWishlist';
 
 export default function ProductCard({ product, className = '', showWishlist = true }) {
@@ -32,9 +33,9 @@ export default function ProductCard({ product, className = '', showWishlist = tr
             {name}
           </h3>
           <div className="flex items-center gap-3">
-            <span className="font-sans text-[13px] text-ink">{formatPrice(price)}</span>
+            <span className="font-sans text-[13px] text-ink"><Price amount={price} /></span>
             {oldPrice && (
-              <span className="font-sans text-[13px] text-graphite line-through">{formatPrice(oldPrice)}</span>
+              <span className="font-sans text-[13px] text-graphite line-through"><Price amount={oldPrice} /></span>
             )}
           </div>
           <ColorDots colors={colors} selectedColor={firstColor} size={10} />

@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import Placeholder from '../components/ui/Placeholder';
+import Price from '../components/ui/Price';
+import { FREE_SHIPPING_THRESHOLD } from '../utils/shipping';
 
 export default function Contact() {
   const [params] = useSearchParams();
@@ -100,7 +102,7 @@ export default function Contact() {
             {[
               { q: 'What is your return policy?', a: 'We offer 30-day free returns on all unworn items with original tags. Custom print items are non-returnable.' },
               { q: 'How long does shipping take?', a: 'Standard shipping: 2-5 business days EU, 5-10 worldwide. Express options available at checkout.' },
-              { q: 'Do you ship internationally?', a: 'Yes, we ship worldwide. Free shipping on orders over €150. Duties and taxes may apply.' },
+              { q: 'Do you ship internationally?', a: <>Yes, we ship worldwide. Free shipping on orders over <Price amount={FREE_SHIPPING_THRESHOLD} />. Duties and taxes may apply.</> },
               { q: 'Can I customize any product?', a: 'Most of our blanks are available for custom printing. Check the product page for the "Add Custom Print" option.' },
             ].map((faq, i) => (
               <details key={i} className="border-b border-line group">

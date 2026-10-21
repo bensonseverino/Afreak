@@ -130,7 +130,9 @@ export default function UserMenu() {
         } ${LABEL_CLASS}`}
       >
         <Icon name="user" size={22} />
-        {firstName ? `Hi, ${firstName}` : 'Account'}
+        <span className="hidden md:inline-block lg:hidden xl:inline-block max-w-[160px] truncate align-middle">
+          {firstName ? `Hi, ${firstName}` : 'Account'}
+        </span>
         {open && <span aria-hidden="true" className="absolute bottom-0 left-2 right-2 h-[1.5px] bg-ink" />}
       </button>
 

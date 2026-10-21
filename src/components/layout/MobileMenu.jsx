@@ -5,6 +5,7 @@ import Icon from '../ui/Icon';
 import MenuAccordion from './MenuAccordion';
 import MenuFeatureTile from './MenuFeatureTile';
 import MenuFooter from './MenuFooter';
+import CurrencySegmented from './CurrencySegmented';
 import MenuLink from './MenuLink';
 import MenuSearch from './MenuSearch';
 import { useUI } from '../../context/UIContext';
@@ -19,7 +20,7 @@ import useSwipeToClose from '../../hooks/useSwipeToClose';
 import { isNavActive, primaryNav, secondaryNav, staticShopLinks } from '../../config/nav';
 
 const SHOP_PANEL_ID = 'mobile-menu-shop';
-const STAGGER = { search: 0, secondary: 7, feature: 8, footer: 9 };
+const STAGGER = { search: 0, secondary: 7, feature: 8, currency: 9, footer: 10 };
 
 /**
  * Mobile (<768px) full-screen menu / tablet (768–1023px) left drawer.
@@ -350,6 +351,14 @@ export default function MobileMenu() {
           </div>
 
           <MenuFeatureTile stagger={STAGGER.feature} onNavigate={closeMenu} />
+
+          <div
+            className="menu-item border-t border-white/10 px-6 py-5 md:px-8"
+            style={{ '--i': STAGGER.currency }}
+          >
+            <CurrencySegmented />
+          </div>
+
           <MenuFooter stagger={STAGGER.footer} />
         </div>
       </aside>

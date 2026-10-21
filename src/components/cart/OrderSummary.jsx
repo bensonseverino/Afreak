@@ -4,7 +4,9 @@ import Placeholder from '../ui/Placeholder';
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
 import { useCart } from '../../context/CartContext';
-import { formatPrice } from '../../data/products';
+import useCurrency from '../../hooks/useCurrency';
+import useCartDisplayTotals from '../../hooks/useCartDisplayTotals';
+import { formatMoney } from '../../lib/currency';
 
 const PAY_ICONS = ['Visa', 'Mastercard', 'PayPal', 'Apple Pay'];
 
@@ -13,7 +15,18 @@ const PAY_ICONS = ['Visa', 'Mastercard', 'PayPal', 'Apple Pay'];
  * variant='checkout' → line list + totals only (checkout summary panel)
  */
 export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLabel, children, className = '', flush = false }) {
-  const { items, subtotal, discount, shipping, tax, total, promoCode, applyPromo, clearPromo } = useCart();
+  const { discount, shipping, promoCode, applyPromo, clearPromo } = useCart();
+  const { formatValue, currency, baseCurrency, chargeCurrency } = useCurrency();
+  const {
+    items,
+    lineTotals,
+    displaySubtotal,
+    displayDiscount,
+    displayShipping,
+    displayTax,
+    displayTotal,
+    baseTotal,
+  } = useCartDisplayTotals();
   const [code, setCode] = useState('');
   const [promoError, setPromoError] = useState('');
   const [applying, setApplying] = useState(false);
@@ -35,6 +48,7 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
   };
 
   const isCheckout = variant === 'checkout';
+  const showConverted = currency !== baseCurrency;
 
   return (
     <div className={`${isCheckout || flush ? '' : 'border border-line p-6'} ${className}`}>
@@ -42,7 +56,7 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
 
       {isCheckout && items.length > 0 && (
         <ul className="mt-5 mb-5 pb-5 border-b border-line space-y-4">
-          {items.map((l) => (
+          {items.map((l, index) => (
             <li key={l.lineId} className="flex gap-3">
               <div className="relative w-16 h-20 bg-card shrink-0">
                 <Placeholder ratio="h-full" label="" src={l.image} alt={l.name} className="w-full h-full" />
@@ -59,7 +73,7 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
                   <p className="text-[12px] text-graphite">Custom print · {l.print.placement}</p>
                 )}
               </div>
-              <span className="text-[13px] text-ink shrink-0">{formatPrice(l.price * l.qty)}</span>
+              <span className="text-[13px] text-ink shrink-0">{formatValue(lineTotals[index])}</span>
             </li>
           ))}
         </ul>
@@ -68,23 +82,23 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
       <dl className={`space-y-3 text-[14px] ${isCheckout ? '' : 'mt-5'}`}>
         <div className="flex justify-between">
           <dt className="text-graphite">Subtotal</dt>
-          <dd className="text-ink">{formatPrice(subtotal)}</dd>
+          <dd className="text-ink">{formatValue(displaySubtotal)}</dd>
         </div>
         {discount > 0 && (
           <div className="flex justify-between">
             <dt className="text-graphite">Discount ({promoCode})</dt>
-            <dd className="text-ink">-{formatPrice(discount)}</dd>
+            <dd className="text-ink">-{formatValue(displayDiscount)}</dd>
           </div>
         )}
         <div className="flex justify-between">
           <dt className="text-graphite">Shipping</dt>
           <dd className={shipping === 0 ? 'font-semibold text-ink' : 'text-ink'}>
-            {shipping === 0 ? 'FREE' : formatPrice(shipping)}
+            {shipping === 0 ? 'FREE' : formatValue(displayShipping)}
           </dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-graphite">{isCheckout ? 'Tax' : 'Estimated tax'}</dt>
-          <dd className="text-ink">{isCheckout ? 'Included' : formatPrice(tax)}</dd>
+          <dd className="text-ink">{isCheckout ? 'Included' : formatValue(displayTax)}</dd>
         </div>
       </dl>
 
@@ -129,13 +143,26 @@ export default function OrderSummary({ variant = 'cart', onCheckout, checkoutLab
             isCheckout ? 'text-[32px]' : 'text-[40px]'
           }`}
         >
-          {formatPrice(total)}
+          {formatValue(displayTotal)}
         </span>
       </div>
 
       {discount > 0 && (
         <p className="mt-2 text-right font-sans font-semibold text-[13px] text-ink">
-          You save {formatPrice(discount)}
+          You save {formatValue(displayDiscount)}
+        </p>
+      )}
+
+      {showConverted && (
+        <p className="mt-3 text-[12px] leading-relaxed text-graphite">
+          Prices in {currency} are approximate and based on the latest exchange rates.
+        </p>
+      )}
+
+      {isCheckout && currency !== chargeCurrency && (
+        <p className="mt-2 text-[12px] leading-relaxed text-graphite">
+          You will be charged {formatMoney(baseTotal, chargeCurrency)}. Your bank may apply its own
+          exchange rate.
         </p>
       )}
 

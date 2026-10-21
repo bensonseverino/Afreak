@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import Icon from '../ui/Icon';
-import { formatPrice } from '../../data/products';
+import useCurrency from '../../hooks/useCurrency';
 
 // Mobile-only collapsible summary bar (keeps the form above the fold).
-export default function SummaryToggle({ total, children }) {
+export default function SummaryToggle({ amount = 0, children }) {
   const [open, setOpen] = useState(false);
+  const { formatValue } = useCurrency();
 
   return (
     <div className="lg:hidden border-b border-line bg-mist">
@@ -22,7 +23,7 @@ export default function SummaryToggle({ total, children }) {
             className={`transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </span>
-        <span className="font-display font-bold text-[16px]">{formatPrice(total)}</span>
+        <span className="font-display font-bold text-[16px]">{formatValue(amount)}</span>
       </button>
       {open && <div className="px-4 pb-5">{children}</div>}
     </div>

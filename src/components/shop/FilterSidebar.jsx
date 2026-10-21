@@ -5,6 +5,8 @@ import {
   sizes as staticSizes,
 } from '../../data/products';
 import Icon from '../ui/Icon';
+import Price from '../ui/Price';
+import useCurrency from '../../hooks/useCurrency';
 
 /**
  * Sections come from the API's filter facets (`meta.facets` on GET /products)
@@ -51,6 +53,7 @@ export default function FilterSidebar({
 }) {
   const [openSections, setOpenSections] = useState(['category', 'price']);
   const sections = useMemo(() => buildSections(facets), [facets]);
+  const { currency, baseCurrency } = useCurrency();
 
   const toggleSection = (key) => {
     setOpenSections(prev =>
@@ -166,7 +169,7 @@ export default function FilterSidebar({
                     max={section.max}
                     value={filters.price?.from ?? ''}
                     placeholder={section.min}
-                    aria-label="Minimum price in euros"
+                    aria-label="Minimum price in EUR"
                     onChange={(e) => handlePriceChange(Number(e.target.value) || section.min, filters.price?.to ?? section.max)}
                     className="flex-1 h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink"
                   />
@@ -179,7 +182,7 @@ export default function FilterSidebar({
                     max={section.max}
                     value={filters.price?.to ?? ''}
                     placeholder={section.max}
-                    aria-label="Maximum price in euros"
+                    aria-label="Maximum price in EUR"
                     onChange={(e) => handlePriceChange(filters.price?.from ?? section.min, Number(e.target.value) || section.max)}
                     className="flex-1 h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink"
                   />
@@ -204,6 +207,12 @@ export default function FilterSidebar({
                     aria-label="Maximum price"
                   />
                 </div>
+                {currency !== baseCurrency && (
+                  <p className="font-sans text-[11px] text-graphite">
+                    ≈ <Price amount={filters.price?.from ?? section.min} /> –{' '}
+                    <Price amount={filters.price?.to ?? section.max} />
+                  </p>
+                )}
               </div>
             )}
 

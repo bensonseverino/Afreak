@@ -14,7 +14,9 @@ import { useCart } from '../context/CartContext';
 import { api } from '../lib/api';
 import { resolveVariantId } from '../lib/catalog';
 import { TRACK_TYPES, track } from '../lib/analytics';
-import { formatPrice } from '../data/products';
+import useCurrency from '../hooks/useCurrency';
+import useCartDisplayTotals from '../hooks/useCartDisplayTotals';
+import { formatMoney } from '../lib/currency';
 import { isCardNumber, isCvc, isEmail, isExpiry, isPhone, isPostal, required } from '../utils/validators';
 
 const INITIAL = {
@@ -101,6 +103,8 @@ export default function Checkout() {
     shippingMethod,
     setServerTotals,
   } = useCart();
+  const { displayTotal } = useCartDisplayTotals();
+  const { formatValue, currency, chargeCurrency } = useCurrency();
 
   const [form, setForm] = useState(() => {
     try {
@@ -276,13 +280,13 @@ export default function Checkout() {
     }
   };
 
-  const payLabel = `Pay ${formatPrice(total)}`;
+  const payLabel = `Pay ${formatValue(displayTotal)}`;
 
   return (
     <CheckoutLayout progress={<CheckoutProgress current="payment" />}>
       <div className="lg:grid lg:grid-cols-[1fr_440px]">
         <div className="min-w-0">
-          <SummaryToggle total={total}>
+          <SummaryToggle amount={displayTotal}>
             <OrderSummary variant="checkout" />
           </SummaryToggle>
 
@@ -322,6 +326,13 @@ export default function Checkout() {
                 payLabel
               )}
             </Button>
+
+            {currency !== chargeCurrency && (
+              <p className="mt-3 text-center text-[12px] leading-relaxed text-graphite lg:hidden">
+                You will be charged {formatMoney(total, chargeCurrency)}. Your bank may apply its
+                own exchange rate.
+              </p>
+            )}
           </div>
         </div>
 
@@ -335,7 +346,7 @@ export default function Checkout() {
       {!keyboardOpen && (
         <StickyCheckoutBar
           className="lg:hidden"
-          total={total}
+          amount={displayTotal}
           onAction={handleSubmit}
           label={payLabel}
           loading={submitting}

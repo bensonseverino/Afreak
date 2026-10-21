@@ -7,13 +7,15 @@ import StickyCheckoutBar from '../components/cart/StickyCheckoutBar';
 import AccessoryCard from '../components/pdp/AccessoryCard';
 import ProgressBar from '../components/ui/ProgressBar';
 import Toast from '../components/ui/Toast';
+import Price from '../components/ui/Price';
 import { useCart } from '../context/CartContext';
+import useCartDisplayTotals from '../hooks/useCartDisplayTotals';
 import { useProducts } from '../lib/catalog';
 import { amountToFreeShipping, FREE_SHIPPING_THRESHOLD } from '../utils/shipping';
-import { formatPrice } from '../utils/format';
 
 export default function Cart() {
-  const { items, count, subtotal, total, removeItem, updateQty, addItem } = useCart();
+  const { items, count, subtotal, removeItem, updateQty, addItem } = useCart();
+  const { displayTotal } = useCartDisplayTotals();
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
   const timerRef = useRef(null);
@@ -83,7 +85,7 @@ export default function Cart() {
                 <ProgressBar value={Math.min(subtotal, FREE_SHIPPING_THRESHOLD)} max={FREE_SHIPPING_THRESHOLD} />
                 <p className="mt-2 text-[12px] text-graphite">
                   {away > 0
-                    ? `${formatPrice(away)} away from free shipping`
+                    ? <><Price amount={away} /> away from free shipping</>
                     : 'You qualify for free shipping'}
                 </p>
               </div>
@@ -138,7 +140,7 @@ export default function Cart() {
       </div>
 
       {items.length > 0 && (
-        <StickyCheckoutBar total={total} onAction={() => navigate('/checkout')} />
+        <StickyCheckoutBar amount={displayTotal} onAction={() => navigate('/checkout')} />
       )}
 
       <Toast

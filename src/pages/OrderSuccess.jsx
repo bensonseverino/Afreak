@@ -4,9 +4,10 @@ import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import Placeholder from '../components/ui/Placeholder';
 import ProductGrid from '../components/product/ProductGrid';
-import { getFeaturedProducts, formatPrice } from '../data/products';
+import { getFeaturedProducts } from '../data/products';
 import { DELIVERY_METHODS } from '../utils/shipping';
 import { useIsSignedIn } from '../hooks/useCustomer';
+import useCurrency from '../hooks/useCurrency';
 
 const STORAGE_KEY = 'afreak.lastOrder';
 
@@ -14,6 +15,7 @@ export default function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signedIn } = useIsSignedIn();
+  const { convert, formatValue } = useCurrency();
   const stateOrder = location.state?.order;
 
   // Persist so a refresh doesn't dump the user back home.
@@ -42,6 +44,14 @@ export default function OrderSuccess() {
   const { items = [], totals = {}, address = {}, email } = order;
   const delivery = DELIVERY_METHODS.find((m) => m.id === order.deliveryMethod);
   const recommendations = getFeaturedProducts(4);
+
+  // Converted once per row; the total is rebuilt from those parts so the
+  // confirmation's arithmetic matches what the shopper sees.
+  const lineTotals = items.map((line) => convert(line.price * line.qty));
+  const displaySubtotal = lineTotals.reduce((sum, value) => sum + value, 0);
+  const displayDiscount = convert(totals.discount || 0);
+  const displayShipping = convert(totals.shipping || 0);
+  const displayTotal = Math.max(0, displaySubtotal - displayDiscount + displayShipping);
 
   return (
     <div className="min-h-screen bg-paper">
@@ -85,7 +95,7 @@ export default function OrderSuccess() {
             </h2>
 
             <ul className="space-y-4 pb-5 border-b border-line">
-              {items.map((l) => (
+              {items.map((l, index) => (
                 <li key={l.lineId} className="flex gap-3">
                   <div className="relative w-16 h-20 bg-card shrink-0">
                     <Placeholder ratio="h-full" label="" src={l.image} alt={l.name} className="w-full h-full" />
@@ -103,7 +113,7 @@ export default function OrderSuccess() {
                     )}
                   </div>
                   <span className="text-[13px] text-ink shrink-0">
-                    {formatPrice(l.price * l.qty)}
+                    {formatValue(lineTotals[index])}
                   </span>
                 </li>
               ))}
@@ -112,18 +122,18 @@ export default function OrderSuccess() {
             <dl className="mt-5 space-y-3 text-[14px]">
               <div className="flex justify-between">
                 <dt className="text-graphite">Subtotal</dt>
-                <dd className="text-ink">{formatPrice(totals.subtotal)}</dd>
+                <dd className="text-ink">{formatValue(displaySubtotal)}</dd>
               </div>
               {totals.discount > 0 && (
                 <div className="flex justify-between">
                   <dt className="text-graphite">Discount</dt>
-                  <dd className="text-ink">-{formatPrice(totals.discount)}</dd>
+                  <dd className="text-ink">-{formatValue(displayDiscount)}</dd>
                 </div>
               )}
               <div className="flex justify-between">
                 <dt className="text-graphite">Shipping</dt>
                 <dd className="text-ink">
-                  {totals.shipping === 0 ? 'FREE' : formatPrice(totals.shipping)}
+                  {totals.shipping === 0 ? 'FREE' : formatValue(displayShipping)}
                 </dd>
               </div>
               <div className="flex justify-between">
@@ -135,7 +145,7 @@ export default function OrderSuccess() {
             <div className="mt-5 pt-5 border-t border-line flex items-end justify-between">
               <span className="font-sans font-bold uppercase text-[13px] tracking-label text-ink">Total</span>
               <span className="font-display font-extrabold text-[28px] leading-none text-ink">
-                {formatPrice(totals.total)}
+                {formatValue(displayTotal)}
               </span>
             </div>
 

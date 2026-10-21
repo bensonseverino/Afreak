@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import Icon from '../ui/Icon';
+import Price from '../ui/Price';
+import { FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
 
-export default function PromoBar({ 
-  message = 'FREE SHIPPING WORLDWIDE ON ORDERS OVER €150',
+/** Announcement bar; CMS copy can replace the default message. */
+export default function PromoBar({
+  message = (
+    <span>
+      FREE SHIPPING WORLDWIDE ON ORDERS OVER <Price amount={FREE_SHIPPING_THRESHOLD} />
+    </span>
+  ),
   dismissible = true,
   className = '',
-  showOnDesktop = false 
+  showOnDesktop = false,
 }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
 
   return (
-    <div 
+    <div
       className={`bg-ink text-paper text-xs font-sans font-medium uppercase tracking-label h-9 flex items-center justify-center ${!showOnDesktop ? 'lg:hidden' : ''} ${className}`}
       role="status"
       aria-live="polite"

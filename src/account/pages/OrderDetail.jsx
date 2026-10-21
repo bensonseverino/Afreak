@@ -13,7 +13,8 @@ import OrderItemRow from '../components/OrderItemRow';
 import { useOrder, useReorder, useRequestReturn } from '../../hooks/useOrders';
 import { useCart } from '../../context/CartContext';
 import { DELIVERY_METHODS } from '../../utils/shipping';
-import { formatCents, formatDate } from '../../utils/format';
+import Price from '../../components/ui/Price';
+import { formatDate } from '../../utils/format';
 
 const REASONS = ['Wrong size', 'Defective', 'Not as described', 'Changed mind', 'Other'];
 
@@ -217,18 +218,18 @@ export default function OrderDetail() {
           <dl className="space-y-2.5 text-[13px] pt-1 border-t border-line">
             <div className="flex justify-between">
               <dt className="text-graphite">Subtotal</dt>
-              <dd className="text-ink">{formatCents(order.totals.subtotalCents)}</dd>
+              <dd className="text-ink"><Price amount={order.totals.subtotalCents / 100} /></dd>
             </div>
             {order.totals.discountCents > 0 && (
               <div className="flex justify-between">
                 <dt className="text-graphite">Discount {order.promoCode ? `(${order.promoCode})` : ''}</dt>
-                <dd className="text-ink">-{formatCents(order.totals.discountCents)}</dd>
+                <dd className="text-ink">-<Price amount={order.totals.discountCents / 100} /></dd>
               </div>
             )}
             <div className="flex justify-between">
               <dt className="text-graphite">Shipping</dt>
               <dd className="text-ink">
-                {order.totals.shippingCents === 0 ? 'FREE' : formatCents(order.totals.shippingCents)}
+                {order.totals.shippingCents === 0 ? 'FREE' : <Price amount={order.totals.shippingCents / 100} />}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -238,7 +239,7 @@ export default function OrderDetail() {
             <div className="flex items-end justify-between pt-3 border-t border-line">
               <dt className="font-sans font-bold uppercase text-[12px] tracking-label text-ink">Total</dt>
               <dd className="font-display font-extrabold text-[24px] leading-none text-ink">
-                {formatCents(order.totals.totalCents)}
+                <Price amount={order.totals.totalCents / 100} />
               </dd>
             </div>
           </dl>

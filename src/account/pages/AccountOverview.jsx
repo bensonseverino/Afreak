@@ -12,7 +12,8 @@ import AccountMenuList from '../components/AccountMenuList';
 import { ACCOUNT_NAV } from '../AccountLayout';
 import { useMe, useLogout } from '../../hooks/useCustomer';
 import { useOverview } from '../../hooks/useOrders';
-import { formatCents, formatDate, formatMonthYear } from '../../utils/format';
+import Price from '../../components/ui/Price';
+import { formatDate, formatMonthYear } from '../../utils/format';
 
 export default function AccountOverview() {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function AccountOverview() {
               </div>
             ))}
             <span className="font-display font-bold text-[20px] text-ink ml-auto">
-              {formatCents(latest.totals.totalCents)}
+              <Price amount={latest.totals.totalCents / 100} />
             </span>
           </div>
 

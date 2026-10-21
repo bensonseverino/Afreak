@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import Placeholder from '../../components/ui/Placeholder';
 import Icon from '../../components/ui/Icon';
 import StatusBadge from './StatusBadge';
-import { formatCents, formatDate } from '../../utils/format';
+import Price from '../../components/ui/Price';
+import { formatDate } from '../../utils/format';
 
 // Order card for the orders list (spec §8.2).
 export default function OrderCard({ order, onReorder, reordering = false }) {
@@ -37,7 +38,7 @@ export default function OrderCard({ order, onReorder, reordering = false }) {
               <p className="text-[13px] text-graphite line-clamp-2">{names.join(', ')}</p>
             )}
             <p className="font-display font-bold text-[18px] text-ink mt-1.5">
-              {formatCents(order.totalCents)}
+              <Price amount={order.totalCents / 100} />
             </p>
           </div>
         </div>

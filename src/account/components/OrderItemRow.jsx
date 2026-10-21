@@ -1,5 +1,5 @@
 import Placeholder from '../../components/ui/Placeholder';
-import { formatCents } from '../../utils/format';
+import Price from '../../components/ui/Price';
 
 // One line on the order detail page (spec §8.3).
 export default function OrderItemRow({ item }) {
@@ -28,7 +28,7 @@ export default function OrderItemRow({ item }) {
       </div>
 
       <span className="font-display font-bold text-[16px] text-ink shrink-0">
-        {formatCents(item.unitPriceCents * item.qty)}
+        <Price amount={(item.unitPriceCents * item.qty) / 100} />
       </span>
     </li>
   );

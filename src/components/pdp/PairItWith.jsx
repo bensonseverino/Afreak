@@ -4,7 +4,7 @@ import Placeholder from '../ui/Placeholder';
 import Icon from '../ui/Icon';
 import Carousel from '../ui/Carousel';
 import SizeSheet from './SizeSheet';
-import { formatPrice } from '../../data/products';
+import Price from '../ui/Price';
 
 // Scroll-snap product row; "Add to bag" opens the quick-add size sheet.
 export default function PairItWith({ products = [], className = '', onAdd }) {
@@ -27,7 +27,7 @@ export default function PairItWith({ products = [], className = '', onAdd }) {
               <p className="font-sans font-semibold uppercase text-[12px] text-ink truncate group-hover:text-graphite transition-colors">
                 {p.name}
               </p>
-              <p className="text-[13px] text-graphite mt-1">{formatPrice(p.price)}</p>
+              <p className="text-[13px] text-graphite mt-1"><Price amount={p.price} /></p>
             </Link>
             <button
               onClick={() => setSheetProduct(p)}

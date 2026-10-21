@@ -124,9 +124,17 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-line flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="font-sans text-xs text-graphite">© 2026 AFREAK. All rights reserved.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <Link to="/privacy" className="font-sans text-xs text-graphite hover:text-ink transition-colors link-underline">Privacy Policy</Link>
             <Link to="/terms" className="font-sans text-xs text-graphite hover:text-ink transition-colors link-underline">Terms & Conditions</Link>
+            <a
+              href="https://www.exchangerate-api.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans text-xs text-graphite hover:text-ink transition-colors link-underline"
+            >
+              Rates by Exchange Rate API
+            </a>
           </div>
         </div>
       </div>

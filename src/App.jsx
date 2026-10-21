@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect } from 'react';
+﻿import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AccountProvider } from './context/AccountContext';
 import { CartProvider } from './context/CartContext';
+import { CurrencyProvider } from './context/CurrencyContext';
 import { UIProvider, useUI } from './context/UIContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { setAppNavigate } from './lib/authNav';
@@ -93,77 +94,79 @@ function App() {
   return (
     <BrowserRouter>
       <RouterBridge />
-      <AccountProvider>
-        <CartProvider>
-          <UIProvider>
-            <WishlistProvider>
-              <ScrollToTop />
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  {/* Checkout uses its own minimal chrome. */}
-                  <Route path="/checkout" element={<Checkout />} />
+      <CurrencyProvider>
+        <AccountProvider>
+          <CartProvider>
+            <UIProvider>
+              <WishlistProvider>
+                <ScrollToTop />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    {/* Checkout uses its own minimal chrome. */}
+                    <Route path="/checkout" element={<Checkout />} />
 
-                  {/* Auth: full-screen two-panel design, own chrome (spec §6.1). */}
-                  <Route path="/account/login" element={<AccountLogin />} />
-                  <Route path="/account/sign-up" element={<AccountSignUp />} />
-                  <Route path="/account/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/account/change-password" element={<ForcedPasswordChange />} />
+                    {/* Auth: full-screen two-panel design, own chrome (spec §6.1). */}
+                    <Route path="/account/login" element={<AccountLogin />} />
+                    <Route path="/account/sign-up" element={<AccountSignUp />} />
+                    <Route path="/account/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/account/change-password" element={<ForcedPasswordChange />} />
 
-                  {/* Redirects for the old auth URLs, so bookmarks keep working. */}
-                  <Route path="/sign-in" element={<Navigate to="/account/login" replace />} />
-                  <Route path="/sign-up" element={<Navigate to="/account/sign-up" replace />} />
+                    {/* Redirects for the old auth URLs, so bookmarks keep working. */}
+                    <Route path="/sign-in" element={<Navigate to="/account/login" replace />} />
+                    <Route path="/sign-up" element={<Navigate to="/account/sign-up" replace />} />
 
-                  {/* Print-friendly invoice: standalone so the printout has no nav/footer. */}
-                  <Route
-                    path="/account/orders/:number/invoice"
-                    element={
-                      <RequireCustomer>
-                        <Invoice />
-                      </RequireCustomer>
-                    }
-                  />
-
-                  <Route element={<Layout />}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/shop" element={<Shop />} />
-                    <Route path="/shop/:category" element={<Shop />} />
-                    <Route path="/product/:slug" element={<ProductDetail />} />
-                    <Route path="/lookbook" element={<Lookbook />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/journal" element={<Journal />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout/success" element={<OrderSuccess />} />
-
+                    {/* Print-friendly invoice: standalone so the printout has no nav/footer. */}
                     <Route
-                      path="/account"
+                      path="/account/orders/:number/invoice"
                       element={
                         <RequireCustomer>
-                          <AccountLayout />
+                          <Invoice />
                         </RequireCustomer>
                       }
-                    >
-                      <Route index element={<AccountOverview />} />
-                      <Route path="orders" element={<OrdersList />} />
-                      <Route path="orders/:number" element={<OrderDetail />} />
-                      <Route path="payment-methods" element={<PaymentMethods />} />
-                      <Route path="addresses" element={<Addresses />} />
-                      <Route path="wishlist" element={<Wishlist />} />
-                      <Route path="profile" element={<Profile />} />
-                      <Route path="security" element={<Security />} />
-                    </Route>
+                    />
 
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-              <Overlays />
-            </WishlistProvider>
-          </UIProvider>
-        </CartProvider>
-      </AccountProvider>
+                    <Route element={<Layout />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/shop" element={<Shop />} />
+                      <Route path="/shop/:category" element={<Shop />} />
+                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route path="/lookbook" element={<Lookbook />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/journal" element={<Journal />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/privacy" element={<PrivacyPolicy />} />
+                      <Route path="/terms" element={<Terms />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout/success" element={<OrderSuccess />} />
+
+                      <Route
+                        path="/account"
+                        element={
+                          <RequireCustomer>
+                            <AccountLayout />
+                          </RequireCustomer>
+                        }
+                      >
+                        <Route index element={<AccountOverview />} />
+                        <Route path="orders" element={<OrdersList />} />
+                        <Route path="orders/:number" element={<OrderDetail />} />
+                        <Route path="payment-methods" element={<PaymentMethods />} />
+                        <Route path="addresses" element={<Addresses />} />
+                        <Route path="wishlist" element={<Wishlist />} />
+                        <Route path="profile" element={<Profile />} />
+                        <Route path="security" element={<Security />} />
+                      </Route>
+
+                      <Route path="*" element={<NotFound />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+                <Overlays />
+              </WishlistProvider>
+            </UIProvider>
+          </CartProvider>
+        </AccountProvider>
+      </CurrencyProvider>
     </BrowserRouter>
   );
 }

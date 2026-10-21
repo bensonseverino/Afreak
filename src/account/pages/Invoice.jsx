@@ -148,6 +148,10 @@ export default function Invoice() {
           </div>
         </dl>
 
+        <p className="mt-3 text-right text-[11px] text-graphite">
+          All amounts are in EUR, the currency charged.
+        </p>
+
         <p className="mt-12 text-[12px] text-graphite">
           Thank you for shopping with AFREAK. Questions about this invoice? Email hello@afreak.com.
         </p>

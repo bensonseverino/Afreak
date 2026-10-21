@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Placeholder from '../ui/Placeholder';
 import Icon from '../ui/Icon';
-import { formatPrice } from '../../data/products';
+import Price from '../ui/Price';
 
 // Horizontal add-on card: thumb · ADD ACCESSORY · name · price · [+] → ✓
 export default function AccessoryCard({ accessory, onAdd, added = false, className = '' }) {
@@ -22,7 +22,7 @@ export default function AccessoryCard({ accessory, onAdd, added = false, classNa
       <div className="flex-1 min-w-0">
         <p className="font-sans font-bold uppercase text-[10px] tracking-label text-graphite">Add accessory</p>
         <p className="font-sans font-semibold text-[14px] text-ink truncate">{accessory.name}</p>
-        <p className="text-[13px] text-graphite">{formatPrice(accessory.price)}</p>
+        <p className="text-[13px] text-graphite"><Price amount={accessory.price} /></p>
       </div>
 
       <button

@@ -1,6 +1,8 @@
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
+import Price from '../ui/Price';
 import { Link } from 'react-router-dom';
+import { FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
 
 export default function ShippingBanner() {
   return (
@@ -16,7 +18,7 @@ export default function ShippingBanner() {
                 FREE SHIPPING WORLDWIDE
               </h2>
               <p className="font-sans text-[14px] text-paper/70">
-                On all orders over €150
+                On all orders over <Price amount={FREE_SHIPPING_THRESHOLD} />
               </p>
             </div>
           </div>

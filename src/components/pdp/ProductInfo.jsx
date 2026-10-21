@@ -7,11 +7,11 @@ import Accordion from '../ui/Accordion';
 import QuantityStepper from '../ui/QuantityStepper';
 import ColorSwatches from './ColorSwatches';
 import SizeGrid from './SizeGrid';
-import { colorHex, colorName, formatPrice } from '../../data/products';
+import Price from '../ui/Price';
+import { colorHex, colorName } from '../../data/products';
 import { formatCount } from '../../utils/format';
+import { FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
 
-const SHIPPING_COPY =
-  'Free standard shipping on all orders over €150. Standard delivery takes 4–7 business days. Express options are available at checkout. Returns accepted within 30 days of delivery.';
 const GUARANTEE_COPY =
   'Every AFREAK piece is built to last. If a seam fails or a zip breaks within 2 years of purchase, we repair or replace it — no questions asked.';
 
@@ -63,7 +63,16 @@ export default function ProductInfo({
       label: 'FEATURES',
       content: (product.features || []).map((f) => `${f.title} — ${f.sub}`).join('  ·  '),
     },
-    { label: 'SHIPPING & RETURNS', content: SHIPPING_COPY },
+    {
+      label: 'SHIPPING & RETURNS',
+      content: (
+        <>
+          Free standard shipping on all orders over <Price amount={FREE_SHIPPING_THRESHOLD} />.
+          Standard delivery takes 4–7 business days. Express options are available at checkout.
+          Returns accepted within 30 days of delivery.
+        </>
+      ),
+    },
     { label: 'GUARANTEES', content: GUARANTEE_COPY },
     { label: 'REVIEWS', content: 'Customer reviews are shown in the reviews section on this page.' },
   ];
@@ -110,11 +119,11 @@ export default function ProductInfo({
 
         <div className="mt-4 flex items-center gap-3 flex-wrap">
           <span className="font-display font-bold text-[28px] leading-none text-ink">
-            {formatPrice(product.price)}
+            <Price amount={product.price} />
           </span>
           {product.oldPrice && (
             <span className="font-sans text-[15px] text-graphite line-through">
-              {formatPrice(product.oldPrice)}
+              <Price amount={product.oldPrice} />
             </span>
           )}
           {discount > 0 && <Badge variant="sale">-{discount}%</Badge>}

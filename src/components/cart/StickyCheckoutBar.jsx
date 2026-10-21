@@ -1,23 +1,25 @@
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
-import { formatPrice } from '../../data/products';
+import useCurrency from '../../hooks/useCurrency';
 
 // Fixed bottom action bar (mobile). Reused by cart and checkout.
 export default function StickyCheckoutBar({
-  total,
+  amount = 0,
   onAction,
   label = 'Checkout →',
   loading = false,
   disabled = false,
   className = 'sm:hidden',
 }) {
+  const { formatValue } = useCurrency();
+
   return (
     <div
       className={`fixed bottom-0 inset-x-0 z-40 bg-paper border-t border-line pb-[env(safe-area-inset-bottom)] px-4 py-3 flex items-center gap-4 ${className}`}
     >
       <div className="shrink-0">
         <p className="font-sans font-bold uppercase text-[11px] tracking-label text-graphite">Total</p>
-        <p className="font-display font-extrabold text-[18px] leading-none text-ink">{formatPrice(total)}</p>
+        <p className="font-display font-extrabold text-[18px] leading-none text-ink">{formatValue(amount)}</p>
       </div>
       <Button
         variant="primary"

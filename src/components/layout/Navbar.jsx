@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Icon from '../ui/Icon';
 import HamburgerButton from './HamburgerButton';
 import UserMenu from './UserMenu';
+import CurrencySwitcher from './CurrencySwitcher';
 import { useCart } from '../../context/CartContext';
 import { useUI } from '../../context/UIContext';
 import { isNavActive, primaryNav } from '../../config/nav';
@@ -91,8 +92,9 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Right: search + account (tablet up), bag */}
+        {/* Right: currency + search + account (tablet up), bag */}
         <div className="flex items-center gap-2 md:gap-4 lg:flex-1 lg:justify-end">
+          <CurrencySwitcher />
           <Link
             to="/search"
             className="hidden md:flex w-11 h-11 items-center justify-center text-ink hover:text-graphite transition-colors"

@@ -9,6 +9,7 @@ import FilterChips from '../components/ui/FilterChips';
 import Pagination from '../components/ui/Pagination';
 import Placeholder from '../components/ui/Placeholder';
 import Button from '../components/ui/Button';
+import useCurrency from '../hooks/useCurrency';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -26,6 +27,7 @@ const FALLBACK_CATEGORIES = [
 
 export default function Shop({ category: categoryParam }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { format } = useCurrency();
 
   // URL facets drive the grid, so every link into /shop is shareable:
   //   ?category=hoodies · ?new=1 · ?customizable=1 · ?q=hoodie · ?page=2
@@ -136,7 +138,7 @@ export default function Shop({ category: categoryParam }) {
       });
     }
     if (filters.price) {
-      chips.push({ key: 'price', label: `€${filters.price.from} - €${filters.price.to}` });
+      chips.push({ key: 'price', label: `${format(filters.price.from)} – ${format(filters.price.to)}` });
     }
     if (filters.newOnly) {
       chips.push({ key: 'new', label: 'NEW ARRIVALS' });
@@ -148,7 +150,7 @@ export default function Shop({ category: categoryParam }) {
       chips.push({ key: 'q', label: `“${filters.q.toUpperCase()}”` });
     }
     return chips;
-  }, [filters, facets]);
+  }, [filters, facets, format]);
 
   const total = meta.total ?? products.length;
   const totalPages = meta.pages ?? 1;

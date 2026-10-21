@@ -4,7 +4,8 @@ import Button from '../ui/Button';
 import ColorSwatches from './ColorSwatches';
 import SizeGrid from './SizeGrid';
 import { useCart } from '../../context/CartContext';
-import { colorHex, colorName, formatPrice } from '../../data/products';
+import Price from '../ui/Price';
+import { colorHex, colorName } from '../../data/products';
 import { findVariantId, sizesForColor } from '../../lib/catalog';
 
 // Quick-add sheet: color + size + confirm. Mobile's primary conversion path.
@@ -63,7 +64,7 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
       footer={
         <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="primary" onClick={confirm} className="w-full h-[52px] text-[12px]">
-            Add to bag · {formatPrice(product.price)}
+            Add to bag · <Price amount={product.price} />
           </Button>
           {error && (
             <p className="mt-2 text-[12px] text-danger" aria-live="polite">

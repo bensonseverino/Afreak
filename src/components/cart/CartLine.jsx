@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Placeholder from '../ui/Placeholder';
 import Icon from '../ui/Icon';
 import QuantityStepper from '../ui/QuantityStepper';
-import { formatPrice } from '../../data/products';
+import Price from '../ui/Price';
 
 // Responsive cart line: mobile stacked, tablet two-row, desktop 5-column grid.
 export default function CartLine({ line, isNew = false, onQtyChange, onRemove, className = '' }) {
@@ -50,7 +50,7 @@ export default function CartLine({ line, isNew = false, onQtyChange, onRemove, c
           <span className="w-1.5 h-1.5 rounded-full bg-ok" aria-hidden="true" /> In stock · Ready to ship
         </p>
         <p className="lg:hidden font-display font-bold text-[18px] text-ink mt-2">
-          {formatPrice(line.price * line.qty)}
+          <Price amount={line.price * line.qty} />
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default function CartLine({ line, isNew = false, onQtyChange, onRemove, c
           onChange={(q) => onQtyChange?.(line.lineId, q)}
         />
         <p className="hidden lg:block font-display font-bold text-[22px] text-ink whitespace-nowrap">
-          {formatPrice(line.price * line.qty)}
+          <Price amount={line.price * line.qty} />
         </p>
         <button
           type="button"

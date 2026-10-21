@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import Placeholder from '../ui/Placeholder';
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
+import Price from '../ui/Price';
 
 const showcaseSlides = [
   {
     label: 'PRODUCT SHOWCASE',
     title: 'UTILITY HOODIE',
-    price: '€120.00',
+    price: 120,
     description: 'The Utility Hoodie is engineered for daily performance. Water-resistant shell, multiple utility pockets, and adjustable hem for a customizable fit.',
     features: [
       { icon: 'drop', label: 'WATER RESISTANT' },
@@ -20,7 +20,7 @@ const showcaseSlides = [
   {
     label: 'PRODUCT SHOWCASE',
     title: 'TECH CARGO HOODIE',
-    price: '€160.00',
+    price: 160,
     description: 'Technical cargo hoodie with modular pocket system. Durable water repellent finish and articulated patterning for unrestricted movement.',
     features: [
       { icon: 'drop', label: 'WATER RESISTANT' },
@@ -32,7 +32,7 @@ const showcaseSlides = [
   {
     label: 'PRODUCT SHOWCASE',
     title: 'OVERSIZED T-SHIRT',
-    price: '€60.00',
+    price: 60,
     description: 'Heavyweight cotton tee with relaxed boxy fit. Garment-dyed for a lived-in feel. Screen printed graphics with water-based inks.',
     features: [
       { icon: 'drop', label: 'HEAVYWEIGHT COTTON' },
@@ -60,7 +60,7 @@ export default function ProductShowcase() {
             <h2 id="showcase-heading" className="font-display font-extrabold uppercase leading-none text-3xl lg:text-4xl text-ink">
               {slide.title}
             </h2>
-            <div className="font-sans font-bold text-[13px] text-ink">{slide.price}</div>
+            <div className="font-sans font-bold text-[13px] text-ink"><Price amount={slide.price} /></div>
             <p className="text-graphite leading-relaxed text-sm lg:text-base max-w-xs">
               {slide.description}
             </p>

@@ -45,12 +45,6 @@ export const MENU_FEATURE_FALLBACK = {
 
 export const FREE_SHIPPING_THRESHOLD_CENTS = 15000;
 
-export function shippingNote(cents) {
-  const value = Number(cents) || FREE_SHIPPING_THRESHOLD_CENTS;
-  const euros = Math.round(value / 100);
-  return `Free shipping worldwide over €${euros}`;
-}
-
 /**
  * Active-link test that understands query-string targets such as
  * `/shop?customizable=1` and nested routes such as `/account/orders/123`.

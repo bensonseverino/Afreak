@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Placeholder from '../ui/Placeholder';
-import { formatPrice } from '../../data/products';
+import Price from '../ui/Price';
 
 const PLACEMENTS = ['Front', 'Back', 'Left sleeve', 'Right sleeve'];
 const ACCEPT = '.png,.jpg,.jpeg,.svg';
@@ -47,7 +47,7 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
       size="md"
       footer={
         <div className="p-4 flex items-center gap-3">
-          {fileName && <span className="text-[13px] text-ink font-semibold">{formatPrice(priceAdd)}</span>}
+          {fileName && <span className="text-[13px] text-ink font-semibold"><Price amount={priceAdd} /></span>}
           <Button variant="primary" onClick={handleSave} disabled={!fileName} className="flex-1 h-[52px] text-[12px]">
             {fileName ? 'Save print' : 'Upload a file first'}
           </Button>
@@ -85,7 +85,7 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
           <div className="min-w-0">
             <p className="font-sans font-semibold text-[13px] text-ink truncate">{fileName || 'No artwork selected'}</p>
             <p className="text-[12px] text-graphite mt-1">Placement · {placement}</p>
-            <p className="text-[12px] text-graphite">Add-on · {formatPrice(priceAdd)}</p>
+            <p className="text-[12px] text-graphite">Add-on · <Price amount={priceAdd} /></p>
           </div>
         </div>
 

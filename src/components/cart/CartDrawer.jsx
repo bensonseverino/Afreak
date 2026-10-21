@@ -5,12 +5,16 @@ import Placeholder from '../ui/Placeholder';
 import QuantityStepper from '../ui/QuantityStepper';
 import ProgressBar from '../ui/ProgressBar';
 import { useCart } from '../../context/CartContext';
+import useCurrency from '../../hooks/useCurrency';
+import useCartDisplayTotals from '../../hooks/useCartDisplayTotals';
+import Price from '../ui/Price';
 import { amountToFreeShipping, FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
-import { formatPrice } from '../../data/products';
 
 // Mini-cart: right drawer on ≥768px, bottom sheet on mobile.
 export default function CartDrawer() {
-  const { isOpen, closeDrawer, items, count, subtotal, removeItem, updateQty } = useCart();
+  const { isOpen, closeDrawer, count, subtotal, removeItem, updateQty } = useCart();
+  const { formatValue } = useCurrency();
+  const { items, lineTotals, displaySubtotal } = useCartDisplayTotals();
   const navigate = useNavigate();
   const away = amountToFreeShipping(subtotal);
 
@@ -28,7 +32,7 @@ export default function CartDrawer() {
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-sans font-bold uppercase text-[12px] tracking-label text-ink">Subtotal</span>
-            <span className="font-display font-bold text-[20px] text-ink">{formatPrice(subtotal)}</span>
+            <span className="font-display font-bold text-[20px] text-ink">{formatValue(displaySubtotal)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -58,7 +62,7 @@ export default function CartDrawer() {
         />
         <p className="mt-2 text-[12px] text-graphite">
           {away > 0
-            ? `${formatPrice(away)} away from free shipping`
+            ? <><Price amount={away} /> away from free shipping</>
             : 'You qualify for free shipping'}
         </p>
 
@@ -66,7 +70,7 @@ export default function CartDrawer() {
           <p className="py-12 text-center text-[13px] text-graphite">Your bag is empty.</p>
         ) : (
           <ul className="mt-2 divide-y divide-line">
-            {items.map((l) => (
+            {items.map((l, index) => (
               <li key={l.lineId} className="py-4 flex gap-3">
                 {l.slug ? (
                   <Link
@@ -98,7 +102,7 @@ export default function CartDrawer() {
                       </span>
                     )}
                     <span className="text-[13px] text-ink shrink-0">
-                      {formatPrice(l.price * l.qty)}
+                      {formatValue(lineTotals[index])}
                     </span>
                   </div>
                   <p className="text-[12px] text-graphite mt-0.5">

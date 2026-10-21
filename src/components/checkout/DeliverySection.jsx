@@ -2,7 +2,7 @@ import Field from '../ui/Field';
 import RadioCard from '../ui/RadioCard';
 import { useCart } from '../../context/CartContext';
 import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
-import { formatPrice } from '../../data/products';
+import Price from '../ui/Price';
 import { COUNTRIES } from '../../utils/countries';
 
 export default function DeliverySection({ form, errors, onChange }) {
@@ -128,7 +128,7 @@ export default function DeliverySection({ form, errors, onChange }) {
             price={
               m.id === 'standard' && subtotal >= FREE_SHIPPING_THRESHOLD
                 ? 'FREE'
-                : formatPrice(m.price)
+                : <Price amount={m.price} />
             }
           />
         ))}
