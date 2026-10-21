@@ -305,3 +305,38 @@ img {
   }
 }
 
+/* Print (legal pages: Privacy Policy, Terms & Conditions) */
+@media print {
+  body.print-legal header,
+  body.print-legal footer,
+  body.print-legal aside,
+  body.print-legal [role="status"],
+  body.print-legal .legal-toc,
+  body.print-legal .legal-backtotop {
+    display: none !important;
+  }
+
+  body.print-legal main,
+  body.print-legal .legal-page {
+    padding-top: 0 !important;
+  }
+
+  body.print-legal .max-w-prose {
+    max-width: none !important;
+  }
+
+  body.print-legal .legal-grid {
+    display: block !important;
+  }
+
+  body.print-legal h2,
+  body.print-legal h3 {
+    break-after: avoid;
+  }
+
+  body.print-legal a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+

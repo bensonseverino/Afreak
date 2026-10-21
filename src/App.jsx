@@ -18,6 +18,8 @@ const Lookbook = lazy(() => import('./pages/Lookbook'));
 const About = lazy(() => import('./pages/About'));
 const Journal = lazy(() => import('./pages/Journal'));
 const Contact = lazy(() => import('./pages/Contact'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Terms = lazy(() => import('./pages/Terms'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Account area — lazy so the storefront bundle stays light (spec §9).
@@ -130,6 +132,8 @@ function App() {
                     <Route path="/about" element={<About />} />
                     <Route path="/journal" element={<Journal />} />
                     <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<Terms />} />
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout/success" element={<OrderSuccess />} />
 
