@@ -2,13 +2,14 @@ import { useState } from 'react';
 import Icon from '../ui/Icon';
 
 // Square size grid with sold-out states + "notify me" inline capture.
+// Each entry can have: { label, stock, available }
 export default function SizeGrid({ sizes = [], selected, onSelect, className = '', disabled = false }) {
   const [notifyFor, setNotifyFor] = useState(null);
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
 
   const pick = (entry) => {
-    if (entry.stock <= 0) {
+    if (!entry.available) {
       setNotifyFor(entry.label);
       setDone(false);
       return;
@@ -21,7 +22,7 @@ export default function SizeGrid({ sizes = [], selected, onSelect, className = '
     <div className={className}>
       <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Size">
         {sizes.map((entry) => {
-          const out = entry.stock <= 0;
+          const out = entry.available === false;
           const active = selected === entry.label;
           return (
             <button
@@ -29,16 +30,19 @@ export default function SizeGrid({ sizes = [], selected, onSelect, className = '
               onClick={() => pick(entry)}
               role="radio"
               aria-checked={active}
-              aria-disabled={out}
+              aria-disabled={out || disabled}
               aria-label={out ? `${entry.label}, sold out` : entry.label}
               className={`relative h-12 flex items-center justify-center font-sans font-medium text-[13px] border transition-colors ${
                 active
                   ? 'bg-ink text-paper border-ink'
                   : out
                     ? 'text-stone border-line cursor-not-allowed'
-                    : 'text-ink border-line hover:border-ink'
+                    : disabled
+                      ? 'text-stone border-line cursor-not-allowed'
+                      : 'text-ink border-line hover:border-ink'
               }`}
               type="button"
+              disabled={out || disabled}
             >
               {entry.label}
               {out && (

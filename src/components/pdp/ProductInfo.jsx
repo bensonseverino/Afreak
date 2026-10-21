@@ -37,6 +37,9 @@ export default function ProductInfo({
   error = '',
   onOpenSizeGuide,
   ctaSentinelRef,
+  lowStock = 0,
+  inStock = true,
+  colorAvailability = [],
 }) {
   const [expanded, setExpanded] = useState(false);
   const [shake, setShake] = useState(false);
@@ -51,11 +54,11 @@ export default function ProductInfo({
   }, [error]);
 
   const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
-  const selectedColor = product.colors?.find((c) => colorHex(c) === color);
+  const selectedColor = colorAvailability.find((c) => c.name === color) ?? product.colors?.find((c) => colorHex(c) === color);
   const sizeEntry = product.sizes?.find((s) => s.label === size);
-  const lowStock = sizeEntry && sizeEntry.stock > 0 && sizeEntry.stock <= 3 ? sizeEntry.stock : 0;
   const maxQty = Math.min(sizeEntry?.stock || 10, 10);
   const ctaLabel = added ? 'Added ✓' : size ? 'Add to bag' : 'Select a size';
+  const isSoldOut = !inStock && size;
 
   const accordionItems = [
     { label: 'DESCRIPTION', content: product.description },
@@ -148,7 +151,11 @@ export default function ProductInfo({
           <p className="font-sans text-[13px] font-medium text-ink mb-1">
             Color: {colorName(selectedColor)}
           </p>
-          <ColorSwatches colors={product.colors} selected={color} onSelect={onColorChange} />
+          <ColorSwatches
+            colors={colorAvailability.length ? colorAvailability : product.colors}
+            selected={color}
+            onSelect={onColorChange}
+          />
         </div>
       )}
 
@@ -164,7 +171,7 @@ export default function ProductInfo({
           </button>
         </div>
         <div className={shake ? 'animate-shake' : ''}>
-          <SizeGrid sizes={product.sizes} selected={size} onSelect={onSizeChange} />
+          <SizeGrid sizes={product.sizes} selected={size} onSelect={onSizeChange} disabled={!inStock} />
         </div>
         {lowStock > 0 && (
           <p className="mt-2 text-[12px] text-warn" aria-live="polite">
@@ -174,6 +181,11 @@ export default function ProductInfo({
         {error && (
           <p className="mt-2 text-[12px] text-danger" aria-live="polite">
             {error}
+          </p>
+        )}
+        {isSoldOut && (
+          <p className="mt-2 text-[12px] text-danger" aria-live="polite">
+            This combination is sold out.
           </p>
         )}
       </div>
@@ -206,10 +218,11 @@ export default function ProductInfo({
           className={`flex-1 h-14 inline-flex items-center justify-center font-sans font-semibold uppercase tracking-label text-[12px] border transition-colors ${
             added
               ? 'bg-ink text-paper border-ink'
-              : !size
+              : !size || isSoldOut
                 ? 'bg-stone text-paper border-stone'
                 : 'bg-ink text-paper border-ink hover:bg-graphite hover:border-graphite'
           }`}
+          disabled={isSoldOut}
         >
           {ctaLabel}
         </button>
@@ -224,7 +237,7 @@ export default function ProductInfo({
         </button>
       </div>
 
-      <Button variant="outline" size="md" onClick={onBuyNow} className="w-full h-14 mt-2 text-[12px]">
+      <Button variant="outline" size="md" onClick={onBuyNow} className="w-full h-14 mt-2 text-[12px]" disabled={isSoldOut}>
         Buy now
       </Button>
 

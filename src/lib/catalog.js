@@ -37,6 +37,13 @@ const sizeRank = (label) => {
 export function cardToProduct(card) {
   if (!card) return null;
   const image = assetUrl(card.image?.url);
+  const colorImages = new Map();
+  if (card.colorImages) {
+    for (const [k, v] of Object.entries(card.colorImages)) {
+      colorImages.set(k, assetUrl(v));
+    }
+  }
+  const minPrice = card.priceFromCents ? euros(card.priceFromCents) : null;
   return {
     id: card.id,
     slug: card.slug,
@@ -53,6 +60,9 @@ export function cardToProduct(card) {
     images: image ? [image] : [],
     accessories: [],
     customizable: false,
+    colorImages,
+    priceFrom: minPrice,
+    soldOut: Boolean(card.soldOut),
   };
 }
 
@@ -63,6 +73,48 @@ export function cardsToProducts(list) {
 /** GET /products/:slug detail → storefront product. */
 export function detailToProduct(detail) {
   if (!detail) return null;
+
+  // Build color options from options array (if present) or fallback to colors
+  const colorOption = detail.options?.find((o) => o.type === 'color');
+  const sizeOption = detail.options?.find((o) => o.type === 'size');
+  const colorsFromOptions = colorOption
+    ? colorOption.values.map((v) => ({
+        name: v.value,
+        hex: v.swatchHex ?? '#000000',
+        swatchImageUrl: v.swatchImageUrl,
+        optionValueId: v.id,
+      }))
+    : detail.colors ?? [];
+
+  // Build image map per color (primary images)
+  const colorImages = new Map();
+  if (detail.images?.length) {
+    for (const img of detail.images) {
+      const colorKey = img.colorName || img.optionValueId;
+      if (colorKey && !colorImages.has(colorKey)) {
+        colorImages.set(colorKey, assetUrl(img.url));
+      }
+    }
+  }
+
+  // Sizes from option or fallback
+  const sizesFromOption = sizeOption
+    ? sizeOption.values.map((v) => v.value)
+    : detail.sizes ?? [];
+
+  // Map variants with new fields
+  const variants = (detail.variants ?? []).map((v) => ({
+    ...v,
+    colorName: v.color_name ?? v.colorName,
+    size: v.size,
+    price: euros(v.priceCents ?? v.price_cents),
+    compareAtPrice: euros(v.compareAtPriceCents ?? v.compare_at_price_cents),
+    optionValueIds: v.optionValueIds ?? v.option_value_ids ?? [],
+    inStock: v.inStock ?? (v.trackStock ? v.stock > 0 : true),
+    active: v.isActive ?? v.is_active ?? true,
+    trackStock: v.trackStock ?? v.track_stock ?? true,
+  }));
+
   return {
     id: detail.id,
     slug: detail.slug,
@@ -83,14 +135,16 @@ export function detailToProduct(detail) {
     ratingDistribution: detail.rating?.distribution ?? null,
     sizeChart: detail.sizeChart ?? null,
     images: (detail.images ?? []).map((img) => assetUrl(img.url)).filter(Boolean),
-    colors: detail.colors ?? [],
-    sizes: sizesForColor(detail, null),
-    variants: detail.variants ?? [],
+    colors: colorsFromOptions,
+    sizes: sizesFromOption,
+    variants,
     pairWith: cardsToProducts(detail.pairWith),
     accessories: cardsToProducts(detail.accessories).map((a) => ({
       ...a,
       image: a.images[0] ?? null,
     })),
+    colorImages,
+    options: detail.options ?? [],
   };
 }
 
@@ -101,14 +155,24 @@ export function detailToProduct(detail) {
 /** Sizes with stock, narrowed to one colour when the detail carries variants. */
 export function sizesForColor(product, colorName) {
   const variants = product?.variants ?? [];
-  const scoped = colorName ? variants.filter((v) => v.color_name === colorName) : variants;
+  const scoped = colorName
+    ? variants.filter(
+        (v) =>
+          v.colorName === colorName ||
+          (v.optionValueIds && v.optionValueIds.length && v.colorName === colorName),
+      )
+    : variants;
   if (scoped.length === 0) {
     // Card-shaped products (no variants) keep whatever sizes they were given.
     return colorName ? [] : product?.sizes ?? [];
   }
   const totals = new Map();
   for (const variant of scoped) {
-    totals.set(variant.size, (totals.get(variant.size) ?? 0) + (variant.stock ?? 0));
+    const isActive = variant.active !== false;
+    const trackStock = variant.trackStock !== false;
+    const stock = trackStock ? variant.stock : Infinity;
+    if (!isActive || (trackStock && stock <= 0)) continue;
+    totals.set(variant.size, (totals.get(variant.size) ?? 0) + (trackStock ? variant.stock : 1));
   }
   // The API orders variants alphabetically; restore the storefront's size run.
   return [...totals.entries()]
@@ -120,7 +184,7 @@ export function sizesForColor(product, colorName) {
 export function findVariantId(product, colorName, size) {
   const variants = product?.variants ?? [];
   const exact = variants.find(
-    (v) => (!colorName || v.color_name === colorName) && (!size || v.size === size),
+    (v) => (!colorName || v.colorName === colorName) && (!size || v.size === size),
   );
   return exact?.id ?? null;
 }
@@ -280,7 +344,7 @@ export async function resolveVariantId(line) {
     const product = await fetchProductDetail(line.slug);
     const variants = product?.variants ?? [];
     const exact = variants.find(
-      (v) => v.color_name === line.color && v.size === line.size,
+      (v) => v.colorName === line.color && v.size === line.size,
     );
     const fallback = variants.find((v) => v.stock > 0) ?? variants[0];
     return (exact ?? fallback)?.id ?? null;

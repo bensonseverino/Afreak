@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Drawer from '../ui/Drawer';
 import Button from '../ui/Button';
 import ColorSwatches from './ColorSwatches';
@@ -17,7 +17,8 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
 
   useEffect(() => {
     if (open && product) {
-      setColor(colorHex(product.colors?.[0]));
+      // Use color name (not hex) for selection
+      setColor(product.colors?.[0]?.name ?? null);
       setSize(null);
       setError(false);
     }
@@ -25,11 +26,22 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
 
   if (!product) return null;
 
-  const selectedColor = product.colors?.find((c) => colorHex(c) === color);
+  const selectedColor = product.colors?.find((c) => c.name === color);
   const selectedColorName = colorName(selectedColor);
   const sizes = sizesForColor(product, selectedColorName);
   const sizeOptions = sizes.length ? sizes : product.sizes ?? [];
-  const stock = sizeOptions.find((s) => s.label === size)?.stock ?? 0;
+
+  // Find variant for current selection to get price + image
+  const variant = useMemo(
+    () =>
+      product.variants?.find(
+        (v) => v.colorName === selectedColorName && v.size === size && v.active !== false,
+      ) ?? null,
+    [product.variants, selectedColorName, size],
+  );
+  const price = variant?.price ?? product.price;
+  const stock = variant?.stock ?? sizeOptions.find((s) => s.label === size)?.stock ?? 0;
+  const colorImage = product.colorImages?.get(selectedColorName) ?? product.images?.[0] ?? null;
 
   const confirm = () => {
     if (!size) {
@@ -39,19 +51,19 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
     addItem({
       productId: product.id,
       slug: product.slug,
-      variantId: findVariantId(product, selectedColorName, size),
+      variantId: variant?.id ?? findVariantId(product, selectedColorName, size),
       name: product.name,
-      price: product.price,
+      price,
       color: selectedColorName,
       size,
       qty: 1,
-      image: product.images?.[0] || null,
+      image: colorImage,
       isNew: Boolean(product.isNew),
       print: { enabled: false, placement: null, fileName: null },
       maxQty: Math.min(stock || 1, 10),
       kind: 'product',
     });
-    onAdded?.({ color, size });
+    onAdded?.({ color: selectedColorName, size });
     onClose?.();
   };
 
@@ -64,7 +76,7 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
       footer={
         <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="primary" onClick={confirm} className="w-full h-[52px] text-[12px]">
-            Add to bag · <Price amount={product.price} />
+            Add to bag · <Price amount={price} />
           </Button>
           {error && (
             <p className="mt-2 text-[12px] text-danger" aria-live="polite">

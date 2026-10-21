@@ -10,6 +10,7 @@ import ThumbStrip from './ThumbStrip';
  * Mobile  — full-bleed scroll-snap slides, counter + dots, tap to open lightbox.
  * Tablet  — single image with arrows + horizontal thumb strip, tap to open lightbox.
  * Desktop — vertical thumb rail + large image, arrow keyboard nav, hover zoom (xl).
+ * Resets to first image when `images` array changes (e.g., color switch).
  */
 export default function Gallery({ images = [], badges = [], wishlisted = false, onToggleWishlist, alt = 'Product' }) {
   const [index, setIndex] = useState(0);
@@ -17,6 +18,11 @@ export default function Gallery({ images = [], badges = [], wishlisted = false, 
   const [origin, setOrigin] = useState('50% 50%');
   const mobileRef = useRef(null);
   const total = images.length || 1;
+
+  // Reset index when images change (color switch)
+  useEffect(() => {
+    setIndex(0);
+  }, [images.join('|')]);
 
   const goTo = (i) => {
     const next = Math.max(0, Math.min(i, total - 1));

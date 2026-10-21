@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { colorHex, colorName } from '../data/products';
 import { findVariantId, sizesForColor, useProduct } from '../lib/catalog';
+import { useProductVariants } from '../hooks/useProductVariants';
 import { TRACK_TYPES, track } from '../lib/analytics';
 import Gallery from '../components/pdp/Gallery';
 import ProductInfo from '../components/pdp/ProductInfo';
@@ -31,51 +32,49 @@ export default function ProductDetail() {
   const wishlisted = product ? hasWished(product.id) : false;
   const handleToggleWishlist = () => product && toggleWished(product);
 
-  const [color, setColor] = useState(null);
-  const [size, setSize] = useState(null);
+  // Variant selection hook
+  const {
+    selectedColor,
+    selectedSize,
+    selectColor,
+    selectSize,
+    galleryImages,
+    price,
+    compareAtPrice: oldPrice,
+    inStock,
+    lowStock,
+    availableSizes,
+    colorAvailability,
+    selectedVariant,
+  } = useProductVariants(product);
+
   const [qty, setQty] = useState(1);
   const [print, setPrint] = useState(EMPTY_PRINT);
   const [added, setAdded] = useState(false);
   const [sizeError, setSizeError] = useState('');
-  const [modal, setModal] = useState(null); // 'print' | 'sizeGuide' | 'sizeSheet'
+  const [modal, setModal] = useState(null);
   const [showSticky, setShowSticky] = useState(false);
   const ctaSentinelRef = useRef(null);
 
-  // Reset selection whenever the loaded product changes.
-  const productId = product?.id;
+  // Funnel counter
   useEffect(() => {
-    if (!product) return;
-    setColor(colorHex(product.colors?.[0]));
-    setSize(null);
-    setQty(1);
-    setPrint(EMPTY_PRINT);
-    setAdded(false);
-    setSizeError('');
-    setShowSticky(false);
-  }, [productId, slug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Funnel counter for the CMS dashboard (fire-and-forget).
-  useEffect(() => {
-    if (productId) track(TRACK_TYPES.productView, productId);
-  }, [productId]);
+    if (product?.id) track(TRACK_TYPES.productView, product.id);
+  }, [product?.id]);
 
   useEffect(() => {
     const el = ctaSentinelRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(
       ([entry]) => setShowSticky(!entry.isIntersecting && entry.boundingClientRect.top < 0),
-      { rootMargin: '-80px 0px 0px 0px' }
+      { rootMargin: '-80px 0px 0px 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [slug, productId]);
+  }, [slug, product?.id]);
 
-  // Stock depends on the selected colour, so narrow the size grid to it.
-  const selectedColorName = colorName(product?.colors?.find((c) => colorHex(c) === color));
-  const sizes = useMemo(() => sizesForColor(product, selectedColorName), [product, selectedColorName]);
   const viewProduct = useMemo(
-    () => (product ? { ...product, sizes: sizes.length ? sizes : product.sizes } : null),
-    [product, sizes]
+    () => (product ? { ...product, price, oldPrice, sizes: availableSizes } : null),
+    [product, price, oldPrice, availableSizes],
   );
 
   if (isPending && !product) {
@@ -105,8 +104,7 @@ export default function ProductDetail() {
   }
 
   const categoryName = product.categoryName || product.category;
-  const images = product.images?.length ? product.images : [null];
-  const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const discount = oldPrice ? Math.round((1 - price / oldPrice) * 100) : 0;
   const badges = [
     ...(product.isNew ? [{ label: 'NEW', variant: 'new' }] : []),
     ...(discount > 0 ? [{ label: `-${discount}%`, variant: 'sale' }] : []),
@@ -117,18 +115,18 @@ export default function ProductDetail() {
   const related = (product.related || []).slice(0, 4);
 
   const doAdd = (overrideSize, overrideQty) => {
-    const chosenSize = overrideSize ?? size;
+    const chosenSize = overrideSize ?? selectedSize;
     const entry = viewProduct.sizes?.find((s) => s.label === chosenSize);
     addItem({
       productId: product.id,
       slug: product.slug,
-      variantId: findVariantId(product, selectedColorName, chosenSize),
+      variantId: selectedVariant?.id ?? findVariantId(product, selectedColor, chosenSize),
       name: product.name,
-      price: product.price,
-      color: selectedColorName,
+      price,
+      color: selectedColor,
       size: chosenSize,
       qty: overrideQty ?? qty,
-      image: product.images?.[0] || null,
+      image: galleryImages[0] || product.images?.[0] || null,
       isNew: Boolean(product.isNew),
       print,
       maxQty: Math.min(entry?.stock ?? 1, 10),
@@ -139,8 +137,12 @@ export default function ProductDetail() {
   };
 
   const handleAdd = () => {
-    if (!size) {
+    if (!selectedSize) {
       setSizeError('Please select a size.');
+      return;
+    }
+    if (!inStock) {
+      setSizeError('This combination is out of stock.');
       return;
     }
     setSizeError('');
@@ -148,8 +150,12 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => {
-    if (!size) {
+    if (!selectedSize) {
       setSizeError('Please select a size.');
+      return;
+    }
+    if (!inStock) {
+      setSizeError('This combination is out of stock.');
       return;
     }
     setSizeError('');
@@ -159,7 +165,7 @@ export default function ProductDetail() {
   };
 
   const handleStickyAction = () => {
-    if (!size) {
+    if (!selectedSize) {
       setModal('sizeSheet');
       return;
     }
@@ -212,7 +218,8 @@ export default function ProductDetail() {
       <div className="max-w-wide mx-auto px-4 md:px-6 lg:px-8 py-6 lg:py-10 lg:grid lg:grid-cols-[1.1fr_1fr] lg:gap-10 xl:gap-14">
         <div className="-mx-4 md:mx-0">
           <Gallery
-            images={images}
+            key={selectedColor}
+            images={galleryImages}
             badges={badges}
             wishlisted={wishlisted}
             onToggleWishlist={handleToggleWishlist}
@@ -223,11 +230,11 @@ export default function ProductDetail() {
         <div className="mt-8 lg:mt-0 lg:sticky lg:top-24 self-start">
           <ProductInfo
             product={viewProduct}
-            color={color}
-            onColorChange={setColor}
-            size={size}
+            color={selectedColor}
+            onColorChange={selectColor}
+            size={selectedSize}
             onSizeChange={(s) => {
-              setSize(s);
+              selectSize(s);
               setSizeError('');
             }}
             qty={qty}
@@ -242,6 +249,9 @@ export default function ProductDetail() {
             error={sizeError}
             onOpenSizeGuide={() => setModal('sizeGuide')}
             ctaSentinelRef={ctaSentinelRef}
+            lowStock={lowStock}
+            inStock={inStock}
+            colorAvailability={colorAvailability}
           />
         </div>
       </div>
@@ -272,15 +282,15 @@ export default function ProductDetail() {
         )}
       </div>
 
-      <StickyBuyBar visible={showSticky} product={product} added={added} onAction={handleStickyAction} />
+      <StickyBuyBar visible={showSticky} product={viewProduct} added={added} onAction={handleStickyAction} />
 
       <SizeSheet
         open={modal === 'sizeSheet'}
         product={viewProduct}
         onClose={() => setModal(null)}
         onAdded={({ color: c, size: s }) => {
-          if (c) setColor(c);
-          if (s) setSize(s);
+          if (c) selectColor(c);
+          if (s) selectSize(s);
           setSizeError('');
         }}
       />
