@@ -4,6 +4,7 @@ import { findVariantId, useProduct } from '../lib/catalog';
 import { useProductVariants } from '../hooks/useProductVariants';
 import useDocumentMeta from '../hooks/useDocumentMeta';
 import { TRACK_TYPES, track } from '../lib/analytics';
+import { paths } from '../lib/productPaths';
 import Gallery from '../components/pdp/Gallery';
 import ProductInfo from '../components/pdp/ProductInfo';
 import HighlightsPanel from '../components/pdp/HighlightsPanel';
@@ -26,6 +27,25 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addItem, closeDrawer } = useCart();
   const { has: hasWished, toggle: toggleWished } = useWishlist();
+
+
+  // Reproduce-issue instrumentation (CMS CONNECTION FIX §3b, Step 1).
+  // On the live site this logs the three strings the diagnostic expects so you
+  // can compare them against the D1 row and the failing network request:
+  //   (a) slug parsed from the URL,
+  //   (b) the storefront path the card/link actually used,
+  //   (c) the API request path the hook fired.
+  useEffect(() => {
+    if (!slug) return;
+    const apiBase = import.meta.env?.VITE_API_BASE ?? '';
+    const apiBaseSlash = apiBase && !apiBase.endsWith('/') ? `${apiBase}/` : apiBase;
+    console.group('ProductDetail deep-link repro');
+    console.log('(a) slug from URL param:', slug);
+    console.log('(b) storefront path linked to:', paths.product(slug));
+    console.log('(c) API path the hook will use:', `${apiBaseSlash}products/${encodeURIComponent(slug)}`);
+    console.log('(d) route table expects path:', paths.product('<slug>'));
+    console.groupEnd();
+  }, [slug]);
 
   const { product, isPending, notFound } = useProduct(slug);
 
