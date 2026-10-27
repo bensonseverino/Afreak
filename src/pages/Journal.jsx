@@ -1,4 +1,5 @@
 import Placeholder from '../components/ui/Placeholder';
+import NewsletterForm from '../components/forms/NewsletterForm';
 import { Link } from 'react-router-dom';
 
 const journalPosts = [
@@ -110,19 +111,13 @@ export default function Journal() {
           <p className="text-graphite max-w-md mx-auto mb-6">
             Subscribe to receive new journal entries, exclusive drops, and behind-the-scenes content.
           </p>
-          <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto" aria-label="Journal newsletter">
-            <label htmlFor="journal-email" className="sr-only">Email</label>
-            <input
-              id="journal-email"
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 h-12 px-4 border border-line bg-paper text-ink placeholder-graphite text-sm focus:outline-none focus:ring-2 focus:ring-ink"
-              required
-            />
-            <button type="submit" className="w-12 h-12 flex items-center justify-center bg-ink text-paper hover:bg-paper hover:text-ink hover:border hover:border-ink transition-colors">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
-          </form>
+          <NewsletterForm
+            source="journal"
+            className="max-w-md mx-auto"
+            inputClassName="flex-1 h-12 px-4 border border-line bg-paper text-ink placeholder-graphite text-sm focus:outline-none focus:ring-2 focus:ring-ink"
+            buttonClassName="w-12 h-12 flex items-center justify-center bg-ink text-paper hover:bg-paper hover:text-ink hover:border hover:border-ink transition-colors"
+            messageClassName="mt-3 text-[12px] text-ok"
+          />
         </div>
       </div>
     </div>

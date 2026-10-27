@@ -11,7 +11,7 @@ import MenuSearch from './MenuSearch';
 import { useUI } from '../../context/UIContext';
 import { useCart } from '../../context/CartContext';
 import { useIsSignedIn, useLogout } from '../../hooks/useCustomer';
-import { useCategories } from '../../hooks/useMenuData';
+import { useCategories, usePublicSettings } from '../../hooks/useMenuData';
 import useEscape from '../../hooks/useEscape';
 import useFocusTrap from '../../hooks/useFocusTrap';
 import useMediaQuery from '../../hooks/useMediaQuery';
@@ -32,6 +32,8 @@ export default function MobileMenu() {
   const { count, openDrawer } = useCart();
   const location = useLocation();
   const { categories } = useCategories();
+  const { settings } = usePublicSettings();
+  const storeName = settings?.store?.name || 'AFREAK';
   const { signedIn, loading, me } = useIsSignedIn();
   const logout = useLogout();
   const isTablet = useMediaQuery('(min-width: 768px)');
@@ -219,10 +221,10 @@ export default function MobileMenu() {
             to="/"
             replace
             onClick={closeMenu}
-            aria-label="Afreak home"
+            aria-label={`${storeName} home`}
             className="absolute left-1/2 -translate-x-1/2 font-display text-xl font-extrabold uppercase tracking-tight text-paper md:text-2xl"
           >
-            AFREAK
+            {storeName}
           </Link>
 
           <button

@@ -3,15 +3,19 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Placeholder from '../ui/Placeholder';
 import Price from '../ui/Price';
+import { api } from '../../lib/api';
 
 const PLACEMENTS = ['Front', 'Back', 'Left sleeve', 'Right sleeve'];
-const ACCEPT = '.png,.jpg,.jpeg,.svg';
+const ACCEPT = '.png,.jpg,.jpeg,.webp,.svg,.pdf';
 const MAX_BYTES = 5 * 1024 * 1024;
 
-// TODO: wire to print service.
+// Custom print: the artwork is uploaded to the private `artwork/` R2 prefix
+// (audit row 22) and only the opaque key travels with the cart/order.
 export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 }) {
   const [fileName, setFileName] = useState(null);
   const [placement, setPlacement] = useState('Front');
+  const [artworkKey, setArtworkKey] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
@@ -19,23 +23,42 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
     if (open) {
       setFileName(null);
       setPlacement('Front');
+      setArtworkKey(null);
+      setUploading(false);
       setError('');
     }
   }, [open]);
 
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_BYTES) {
       setError('File must be 5MB or smaller.');
       return;
     }
+
     setError('');
     setFileName(file.name);
+    setArtworkKey(null);
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await api('/uploads/artwork', { method: 'POST', body });
+      const key = res?.data?.artworkKey;
+      if (!key) throw new Error('Upload failed. Please try again.');
+      setArtworkKey(key);
+    } catch (err) {
+      setError(err?.message || 'Could not upload that file. Please try again.');
+      setFileName(null);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = () => {
-    onSave?.({ enabled: true, placement, fileName });
+    if (!artworkKey) return;
+    onSave?.({ enabled: true, placement, fileName, artworkKey });
     onClose?.();
   };
 
@@ -48,8 +71,13 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
       footer={
         <div className="p-4 flex items-center gap-3">
           {fileName && <span className="text-[13px] text-ink font-semibold"><Price amount={priceAdd} /></span>}
-          <Button variant="primary" onClick={handleSave} disabled={!fileName} className="flex-1 h-[52px] text-[12px]">
-            {fileName ? 'Save print' : 'Upload a file first'}
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={!artworkKey || uploading}
+            className="flex-1 h-[52px] text-[12px]"
+          >
+            {uploading ? 'Uploading…' : artworkKey ? 'Save print' : 'Upload a file first'}
           </Button>
         </div>
       }
@@ -67,10 +95,10 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
             onChange={handleFile}
             className="sr-only"
           />
-          <Button variant="outline" size="md" onClick={() => inputRef.current?.click()} className="w-full h-[52px]">
-            {fileName ? 'Replace artwork' : 'Choose file (PNG / JPG / SVG)'}
+          <Button variant="outline" size="md" onClick={() => inputRef.current?.click()} disabled={uploading} className="w-full h-[52px]">
+            {uploading ? 'Uploading…' : fileName ? 'Replace artwork' : 'Choose file (PNG / JPG / WEBP / SVG / PDF)'}
           </Button>
-          <p className="mt-2 text-[12px] text-graphite">Maximum 5MB. Print preview is a placeholder.</p>
+          <p className="mt-2 text-[12px] text-graphite">Maximum 5MB. Your artwork stays private and is never served publicly.</p>
           {error && (
             <p className="mt-1.5 text-[12px] text-danger" aria-live="polite">
               {error}

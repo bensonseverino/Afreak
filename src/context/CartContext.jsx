@@ -8,6 +8,7 @@ import {
   useEffect,
 } from 'react';
 import { shippingFor } from '../utils/shipping';
+import { useShippingRates } from '../hooks/useMenuData';
 import { api } from '../lib/api';
 import { TRACK_TYPES, track } from '../lib/analytics';
 
@@ -38,6 +39,8 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState(loadItems);
   const [isOpen, setIsOpen] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('standard');
+  // CMS shipping rules (audit row 5). The server quote still overrides these.
+  const shippingRates = useShippingRates();
   // `promo` mirrors the API's shape: { code, type: 'percent'|'fixed', value }.
   const [promo, setPromo] = useState(null);
   // Totals returned by POST /checkout/quote override the local estimate.
@@ -64,7 +67,7 @@ export function CartProvider({ children }) {
   }, [promo, subtotal]);
 
   const localTotals = useMemo(() => {
-    const shipping = shippingFor(subtotal - discount, shippingMethod);
+    const shipping = shippingFor(subtotal - discount, shippingMethod, shippingRates);
     return {
       subtotal,
       discount,
@@ -72,7 +75,7 @@ export function CartProvider({ children }) {
       tax: 0,
       total: Math.max(0, subtotal - discount + shipping),
     };
-  }, [subtotal, discount, shippingMethod]);
+  }, [subtotal, discount, shippingMethod, shippingRates]);
 
   // Only trust a server quote that matches the current cart inputs.
   const signature = useMemo(

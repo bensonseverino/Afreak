@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { colorHex, colorName } from '../data/products';
 import { findVariantId, sizesForColor, useProduct } from '../lib/catalog';
 import { useProductVariants } from '../hooks/useProductVariants';
+import useDocumentMeta from '../hooks/useDocumentMeta';
 import { TRACK_TYPES, track } from '../lib/analytics';
 import Gallery from '../components/pdp/Gallery';
 import ProductInfo from '../components/pdp/ProductInfo';
@@ -28,6 +29,9 @@ export default function ProductDetail() {
   const { has: hasWished, toggle: toggleWished } = useWishlist();
 
   const { product, isPending, notFound } = useProduct(slug);
+
+  // CMS SEO fields (audit row 16) — falls back to the product name.
+  useDocumentMeta(product?.seo?.title || product?.name, product?.seo?.description);
 
   const wishlisted = product ? hasWished(product.id) : false;
   const handleToggleWishlist = () => product && toggleWished(product);
@@ -270,7 +274,12 @@ export default function ProductDetail() {
 
         <PairItWith products={pairWithProducts} />
 
-        <ReviewsPreview rating={product.rating} reviewCount={product.reviewCount} />
+        <ReviewsPreview
+          slug={product.slug}
+          rating={product.rating}
+          reviewCount={product.reviewCount}
+          distribution={product.ratingDistribution}
+        />
 
         {related.length > 0 && (
           <section aria-label="You may also like">

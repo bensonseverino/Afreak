@@ -105,6 +105,8 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
               setSize(s);
               setError(false);
             }}
+            productId={product.id}
+            color={selectedColorName}
           />
         </div>
       </div>

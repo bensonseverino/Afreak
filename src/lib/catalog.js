@@ -144,6 +144,10 @@ export function detailToProduct(detail) {
     printAddonCents: detail.printAddonCents ?? 0,
     shortDescription: detail.shortDescription ?? '',
     description: detail.description ?? '',
+    seo: {
+      title: detail.seo?.title ?? null,
+      description: detail.seo?.description ?? null,
+    },
     features: Array.isArray(detail.features) ? detail.features : [],
     rating: detail.rating?.average ?? 0,
     reviewCount: detail.rating?.count ?? 0,
@@ -179,19 +183,24 @@ export function sizesForColor(product, colorName) {
     : variants;
   if (scoped.length === 0) {
     // Card-shaped products (no variants) keep whatever sizes they were given.
-    return colorName ? [] : product?.sizes ?? [];
+    return (colorName ? [] : product?.sizes ?? []).map((label) => ({
+      label: typeof label === 'string' ? label : label.label,
+      stock: typeof label === 'object' && label.stock != null ? label.stock : Infinity,
+      available: typeof label === 'object' ? label.available !== false : true,
+    }));
   }
   const totals = new Map();
   for (const variant of scoped) {
     const isActive = variant.active !== false;
+    if (!isActive) continue;
     const trackStock = variant.trackStock !== false;
     const stock = trackStock ? variant.stock : Infinity;
-    if (!isActive || (trackStock && stock <= 0)) continue;
-    totals.set(variant.size, (totals.get(variant.size) ?? 0) + (trackStock ? variant.stock : 1));
+    totals.set(variant.size, (totals.get(variant.size) ?? 0) + (trackStock ? stock : 1));
   }
   // The API orders variants alphabetically; restore the storefront's size run.
+  // Sold-out sizes stay in the list so the PDP can offer "notify me" (row 21).
   return [...totals.entries()]
-    .map(([label, stock]) => ({ label, stock }))
+    .map(([label, stock]) => ({ label, stock, available: stock > 0 }))
     .sort((a, b) => sizeRank(a.label) - sizeRank(b.label));
 }
 
@@ -354,6 +363,12 @@ export function mapLookbookItem(item) {
   };
 }
 
+/** Menu tile: defaults + CMS values, with the media URL made absolute. */
+export function mapMenuFeature(feature) {
+  const value = { ...DEFAULT_MENU_FEATURE, ...(feature ?? {}) };
+  return { ...value, image: mapImage(value.image) };
+}
+
 /** Showcase = a product card plus the CMS description/feature highlights. */
 export function mapShowcase(card) {
   if (!card) return null;
@@ -402,7 +417,7 @@ export function useHome() {
         promoBar: d.promoBar ?? DEFAULT_PROMO_BAR,
         shippingBanner: d.shippingBanner ?? DEFAULT_SHIPPING_BANNER,
         footer: d.footer ?? DEFAULT_FOOTER,
-        menuFeature: d.menuFeature ?? DEFAULT_MENU_FEATURE,
+        menuFeature: mapMenuFeature(d.menuFeature),
         showcase: mapShowcase(d.showcase) ?? (emptyStore ? DEFAULT_SHOWCASE : null),
         featured: cardsToProducts(d.featured),
         newArrivals: cardsToProducts(d.newArrivals),
@@ -466,7 +481,7 @@ export function useSettings() {
         },
         shippingBanner: d.shippingBanner ?? null,
         footer: d.footer ?? null,
-        menuFeature: d.menuFeature ?? d.menu_feature ?? null,
+        menuFeature: mapMenuFeature(d.menuFeature ?? d.menu_feature),
         currency: d.currency ?? null,
       };
     },

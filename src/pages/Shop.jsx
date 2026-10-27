@@ -7,9 +7,10 @@ import PromoBanner from '../components/shop/PromoBanner';
 import ProductGrid from '../components/product/ProductGrid';
 import FilterChips from '../components/ui/FilterChips';
 import Pagination from '../components/ui/Pagination';
-import Placeholder from '../components/ui/Placeholder';
 import Button from '../components/ui/Button';
+import CmsImage from '../components/ui/CmsImage';
 import useCurrency from '../hooks/useCurrency';
+import { useCategories } from '../hooks/useMenuData';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -20,14 +21,10 @@ const sortOptions = [
   { value: 'newest', label: 'Newest' },
 ];
 
-const FALLBACK_CATEGORIES = [
-  { slug: 'hoodies', name: 'Hoodies' },
-  { slug: 'accessories', name: 'Accessories' },
-];
-
 export default function Shop({ category: categoryParam }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { format } = useCurrency();
+  const { categories: shopCategories } = useCategories();
 
   // URL facets drive the grid, so every link into /shop is shareable:
   //   ?category=hoodies · ?new=1 · ?customizable=1 · ?q=hoodie · ?page=2
@@ -170,8 +167,10 @@ export default function Shop({ category: categoryParam }) {
     .filter(Boolean)
     .join('&');
 
-  const otherCategories = (facets?.categories?.length ? facets.categories : FALLBACK_CATEGORIES)
-    .filter((c) => c.slug === 'hoodies' || c.slug === 'accessories')
+  // "Other categories" cards come from GET /api/categories (audit row 10),
+  // never a hard-coded hoodies/accessories pair.
+  const otherCategories = shopCategories
+    .filter((category) => category.slug !== activeCategorySlug)
     .slice(0, 2);
 
   return (
@@ -283,16 +282,22 @@ export default function Shop({ category: categoryParam }) {
                         {cat.name?.toUpperCase()}
                       </h3>
                       <p className="font-sans text-graphite text-sm lg:text-base">
-                        Discover our latest {cat.name?.toLowerCase()} collection with new styles dropping weekly.
+                        {cat.count
+                          ? `${cat.count} ${cat.count === 1 ? 'style' : 'styles'} — new drops every week.`
+                          : 'Discover our latest collection with new styles dropping weekly.'}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 mt-6 lg:mt-0 lg:flex-shrink-0">
                       <Button variant="outline" className="w-full lg:w-auto">
                         SHOP {cat.name?.toUpperCase()}
                       </Button>
-                      <div className="w-32 h-32 lg:w-40 lg:h-40 bg-paper flex-shrink-0 overflow-hidden">
-                        <Placeholder ratio="aspect-square" label={cat.name?.toUpperCase() || 'CATEGORY'} />
-                      </div>
+                      <CmsImage
+                        image={cat.image}
+                        alt={cat.name}
+                        ratio="aspect-square"
+                        sizes="(min-width: 1024px) 160px, 128px"
+                        className="w-32 h-32 lg:w-40 lg:h-40 flex-shrink-0"
+                      />
                     </div>
                   </Link>
                 ))}
