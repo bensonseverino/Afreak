@@ -10,7 +10,7 @@ import SizeGrid from './SizeGrid';
 import Price from '../ui/Price';
 import { colorHex, colorName } from '../../data/products';
 import { formatCount } from '../../utils/format';
-import { FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
+import { useShippingThreshold } from '../../hooks/useMenuData';
 
 const GUARANTEE_COPY =
   'Every AFREAK piece is built to last. If a seam fails or a zip breaks within 2 years of purchase, we repair or replace it — no questions asked.';
@@ -44,6 +44,7 @@ export default function ProductInfo({
   const [expanded, setExpanded] = useState(false);
   const [shake, setShake] = useState(false);
   const sizeRef = useRef(null);
+  const freeShippingThreshold = useShippingThreshold();
 
   useEffect(() => {
     if (!error) return;
@@ -70,7 +71,7 @@ export default function ProductInfo({
       label: 'SHIPPING & RETURNS',
       content: (
         <>
-          Free standard shipping on all orders over <Price amount={FREE_SHIPPING_THRESHOLD} />.
+          Free standard shipping on all orders over <Price amount={freeShippingThreshold} />.
           Standard delivery takes 4–7 business days. Express options are available at checkout.
           Returns accepted within 30 days of delivery.
         </>
@@ -171,7 +172,14 @@ export default function ProductInfo({
           </button>
         </div>
         <div className={shake ? 'animate-shake' : ''}>
-          <SizeGrid sizes={product.sizes} selected={size} onSelect={onSizeChange} disabled={!inStock} />
+          <SizeGrid
+            sizes={product.sizes}
+            selected={size}
+            onSelect={onSizeChange}
+            disabled={!inStock}
+            productId={product.id}
+            color={color}
+          />
         </div>
         {lowStock > 0 && (
           <p className="mt-2 text-[12px] text-warn" aria-live="polite">

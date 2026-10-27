@@ -1,12 +1,17 @@
 import Field from '../ui/Field';
 import RadioCard from '../ui/RadioCard';
 import { useCart } from '../../context/CartContext';
-import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
+import { useShippingRates } from '../../hooks/useMenuData';
 import Price from '../ui/Price';
 import { COUNTRIES } from '../../utils/countries';
 
 export default function DeliverySection({ form, errors, onChange }) {
   const { subtotal, shippingMethod, setShippingMethod } = useCart();
+  const { freeShippingThreshold, flat, express } = useShippingRates();
+  const methods = [
+    { id: 'standard', label: 'Standard', note: '4–7 business days', price: flat },
+    { id: 'express', label: 'Express', note: '1–3 business days', price: express },
+  ];
 
   return (
     <section className="border-b border-line py-8">
@@ -116,7 +121,7 @@ export default function DeliverySection({ form, errors, onChange }) {
         Delivery method
       </h3>
       <div className="space-y-2">
-        {DELIVERY_METHODS.map((m) => (
+        {methods.map((m) => (
           <RadioCard
             key={m.id}
             name="deliveryMethod"
@@ -126,7 +131,7 @@ export default function DeliverySection({ form, errors, onChange }) {
             title={m.label}
             note={m.note}
             price={
-              m.id === 'standard' && subtotal >= FREE_SHIPPING_THRESHOLD
+              m.id === 'standard' && subtotal >= freeShippingThreshold
                 ? 'FREE'
                 : <Price amount={m.price} />
             }

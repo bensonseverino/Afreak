@@ -11,11 +11,12 @@ import Price from '../components/ui/Price';
 import { useCart } from '../context/CartContext';
 import useCartDisplayTotals from '../hooks/useCartDisplayTotals';
 import { useProducts } from '../lib/catalog';
-import { amountToFreeShipping, FREE_SHIPPING_THRESHOLD } from '../utils/shipping';
+import { useShippingThreshold } from '../hooks/useMenuData';
 
 export default function Cart() {
   const { items, count, subtotal, removeItem, updateQty, addItem } = useCart();
   const { displayTotal } = useCartDisplayTotals();
+  const freeShippingThreshold = useShippingThreshold();
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
   const timerRef = useRef(null);
@@ -38,7 +39,7 @@ export default function Cart() {
     clearTimeout(timerRef.current);
   };
 
-  const away = amountToFreeShipping(subtotal);
+  const away = Math.max(0, freeShippingThreshold - subtotal);
 
   const inCart = new Set(items.map((l) => l.productId));
   const recommended = accessories.filter((a) => !inCart.has(a.id)).slice(0, 4);
@@ -82,7 +83,7 @@ export default function Cart() {
               </div>
 
               <div className="sm:hidden mb-6">
-                <ProgressBar value={Math.min(subtotal, FREE_SHIPPING_THRESHOLD)} max={FREE_SHIPPING_THRESHOLD} />
+                <ProgressBar value={Math.min(subtotal, freeShippingThreshold)} max={freeShippingThreshold} />
                 <p className="mt-2 text-[12px] text-graphite">
                   {away > 0
                     ? <><Price amount={away} /> away from free shipping</>

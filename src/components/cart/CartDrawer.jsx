@@ -8,15 +8,16 @@ import { useCart } from '../../context/CartContext';
 import useCurrency from '../../hooks/useCurrency';
 import useCartDisplayTotals from '../../hooks/useCartDisplayTotals';
 import Price from '../ui/Price';
-import { amountToFreeShipping, FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
+import { useShippingThreshold } from '../../hooks/useMenuData';
 
 // Mini-cart: right drawer on ≥768px, bottom sheet on mobile.
 export default function CartDrawer() {
   const { isOpen, closeDrawer, count, subtotal, removeItem, updateQty } = useCart();
   const { formatValue } = useCurrency();
   const { items, lineTotals, displaySubtotal } = useCartDisplayTotals();
+  const freeShippingThreshold = useShippingThreshold();
   const navigate = useNavigate();
-  const away = amountToFreeShipping(subtotal);
+  const away = Math.max(0, freeShippingThreshold - subtotal);
 
   const go = (path) => {
     closeDrawer();
@@ -57,8 +58,8 @@ export default function CartDrawer() {
     >
       <div className="p-4">
         <ProgressBar
-          value={Math.min(subtotal, FREE_SHIPPING_THRESHOLD)}
-          max={FREE_SHIPPING_THRESHOLD}
+          value={Math.min(subtotal, freeShippingThreshold)}
+          max={freeShippingThreshold}
         />
         <p className="mt-2 text-[12px] text-graphite">
           {away > 0
