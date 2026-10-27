@@ -1,5 +1,5 @@
 /**
- * Catalog data layer.
+ * Catalog + CMS content data layer.
  *
  * Fetches from the AFREAK API (`VITE_API_BASE`) and maps every response into
  * the same product shape the storefront components already render, so the
@@ -7,9 +7,24 @@
  *
  * Money is converted here: the API speaks integer cents, the storefront
  * speaks euros (see `utils/format`).
+ *
+ * CMS content (hero, lookbook, promo bar, showcase, settings) is fetched
+ * through the hooks at the bottom of this file and typed in `lib/types.js`.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
+import {
+  DEFAULT_SHIPPING_RULES,
+  DEFAULT_STORE,
+  DEFAULT_HERO_SLIDES,
+  DEFAULT_LOOKBOOK,
+  DEFAULT_SHOWCASE,
+  DEFAULT_SHIPPING_BANNER,
+  DEFAULT_PROMO_BAR,
+  DEFAULT_FOOTER,
+  DEFAULT_MENU_FEATURE,
+} from '../data/defaults';
 
 export const API_BASE = import.meta.env?.VITE_API_BASE ?? '';
 
@@ -193,10 +208,16 @@ export function findVariantId(product, colorName, size) {
  * Queries
  * ------------------------------------------------------------------ */
 
+/**
+ * Shared query policy (CMS CONNECTION FIX §6.4): content is revalidated on
+ * focus/reconnect and at most 15 s old, so an admin save is never more than a
+ * page refresh away.
+ */
 const CATALOG_QUERY = {
-  staleTime: 60 * 1000,
+  staleTime: 15 * 1000,
   gcTime: 15 * 60 * 1000,
-  refetchOnWindowFocus: false,
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
   retry: 1,
 };
 
@@ -298,39 +319,166 @@ export function useProduct(slug) {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * CMS content (home, lookbook, settings)
+ * ------------------------------------------------------------------ */
+
+export function mapImage(image) {
+  if (!image?.url) return null;
+  return {
+    url: assetUrl(image.url),
+    alt: image.alt ?? null,
+    width: image.width ?? null,
+    height: image.height ?? null,
+  };
+}
+
+export function mapHeroSlide(slide) {
+  return {
+    id: slide.id,
+    eyebrow: slide.eyebrow ?? null,
+    title: slide.title ?? '',
+    subtitle: slide.subtitle ?? null,
+    ctaLabel: slide.ctaLabel ?? null,
+    ctaUrl: slide.ctaUrl ?? null,
+    image: mapImage(slide.image),
+  };
+}
+
+export function mapLookbookItem(item) {
+  return {
+    id: item.id,
+    label: item.caption ?? '',
+    linkUrl: item.linkUrl ?? null,
+    image: mapImage(item.image),
+  };
+}
+
+/** Showcase = a product card plus the CMS description/feature highlights. */
+export function mapShowcase(card) {
+  if (!card) return null;
+  const product = cardToProduct(card);
+  if (!product) return null;
+  return {
+    ...product,
+    image: mapImage(card.image),
+    shortDescription: card.shortDescription ?? null,
+    description: card.description ?? '',
+    features: Array.isArray(card.features) ? card.features : [],
+  };
+}
+
+/**
+ * When `content_version` moves, an admin saved something: drop the catalogue
+ * caches so prices, stock and product flags follow the content (§6.4).
+ */
+let lastContentVersion = null;
+
+function useContentVersionSync(version) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (typeof version !== 'number') return;
+    if (lastContentVersion === null) {
+      lastContentVersion = version;
+      return;
+    }
+    if (version === lastContentVersion) return;
+    lastContentVersion = version;
+    queryClient.invalidateQueries({ queryKey: ['catalog'] });
+  }, [queryClient, version]);
+}
+
+/** GET /home — single source for every CMS-driven homepage section (§5.1). */
 export function useHome() {
   const result = useQuery({
     queryKey: ['catalog', 'home'],
     queryFn: async () => {
       const res = await api('/home');
       const d = res.data ?? {};
+      const emptyStore =
+        !d.showcase && !d.featured?.length && !d.newArrivals?.length;
       return {
-        promoBar: d.promoBar ?? null,
-        shippingBanner: d.shippingBanner ?? null,
-        footer: d.footer ?? null,
-        showcase: cardToProduct(d.showcase),
+        version: typeof d.version === 'number' ? d.version : null,
+        promoBar: d.promoBar ?? DEFAULT_PROMO_BAR,
+        shippingBanner: d.shippingBanner ?? DEFAULT_SHIPPING_BANNER,
+        footer: d.footer ?? DEFAULT_FOOTER,
+        menuFeature: d.menuFeature ?? DEFAULT_MENU_FEATURE,
+        showcase: mapShowcase(d.showcase) ?? (emptyStore ? DEFAULT_SHOWCASE : null),
         featured: cardsToProducts(d.featured),
         newArrivals: cardsToProducts(d.newArrivals),
-        heroSlides: (d.heroSlides ?? []).map((slide) => ({
-          id: slide.id,
-          eyebrow: slide.eyebrow,
-          title: slide.title,
-          subtitle: slide.subtitle,
-          ctaLabel: slide.ctaLabel,
-          ctaUrl: slide.ctaUrl,
-          image: assetUrl(slide.image?.url),
-        })),
-        lookbook: (d.lookbook ?? []).map((item) => ({
-          id: item.id,
-          label: item.caption ?? '',
-          linkUrl: item.linkUrl ?? null,
-          image: assetUrl(item.image?.url),
-        })),
+        heroSlides: (d.heroSlides ?? []).map(mapHeroSlide),
+        lookbook: (d.lookbook ?? []).map(mapLookbookItem),
       };
     },
     ...CATALOG_QUERY,
   });
-  return { home: result.data ?? null, isPending: result.isPending };
+
+  useContentVersionSync(result.data?.version);
+
+  return {
+    home: result.data ?? null,
+    isPending: result.isPending,
+    isError: result.isError,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+/** GET /lookbook — the full lookbook page (§4.4). */
+export function useLookbook() {
+  const result = useQuery({
+    queryKey: ['catalog', 'lookbook'],
+    queryFn: async () => {
+      const res = await api('/lookbook');
+      return (Array.isArray(res.data) ? res.data : []).map(mapLookbookItem);
+    },
+    ...CATALOG_QUERY,
+  });
+  return {
+    items: result.data ?? [],
+    isPending: result.isPending,
+    isError: result.isError,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+/** GET /settings/public — shipping rules, promo bar, banner, footer, menu tile. */
+export function useSettings() {
+  const result = useQuery({
+    queryKey: ['catalog', 'settings'],
+    queryFn: async () => {
+      const res = await api('/settings/public');
+      const d = res.data ?? {};
+      const shipping = d.shipping ?? {};
+      const store = d.store ?? {};
+      return {
+        store: {
+          name: store.name ?? DEFAULT_STORE.name,
+          email: store.email ?? '',
+          social: { ...DEFAULT_STORE.social, ...(store.social ?? {}) },
+        },
+        promoBar: d.promoBar ?? null,
+        shipping: {
+          thresholdCents: shipping.thresholdCents ?? shipping.threshold_cents ?? DEFAULT_SHIPPING_RULES.thresholdCents,
+          flatCents: shipping.flatCents ?? shipping.flat_cents ?? DEFAULT_SHIPPING_RULES.flatCents,
+          expressCents: shipping.expressCents ?? shipping.express_cents ?? DEFAULT_SHIPPING_RULES.expressCents,
+        },
+        shippingBanner: d.shippingBanner ?? null,
+        footer: d.footer ?? null,
+        menuFeature: d.menuFeature ?? d.menu_feature ?? null,
+        currency: d.currency ?? null,
+      };
+    },
+    ...CATALOG_QUERY,
+  });
+  return {
+    settings: result.data ?? null,
+    isPending: result.isPending,
+    isError: result.isError,
+    error: result.error,
+    refetch: result.refetch,
+  };
 }
 
 /**

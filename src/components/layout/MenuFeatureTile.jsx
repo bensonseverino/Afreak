@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom';
 import Icon from '../ui/Icon';
+import CmsImage from '../ui/CmsImage';
 import { usePublicSettings } from '../../hooks/useMenuData';
+import { DEFAULT_MENU_FEATURE } from '../../data/defaults';
 
 /**
  * Promo tile (spec §3.6) — compact on mobile, tall on tablet. Content comes from
- * the `menu_feature` public setting with a built-in fallback.
+ * the `menu_feature` public setting (camelCase `menuFeature` since the CMS
+ * connection fix) with a built-in fallback.
  */
 export default function MenuFeatureTile({ stagger, onNavigate }) {
   const { settings } = usePublicSettings();
-  const feature = settings.menu_feature || {};
+  const feature = { ...DEFAULT_MENU_FEATURE, ...(settings.menuFeature ?? settings.menu_feature ?? {}) };
   const to = feature.url || '/shop?new=1';
-  const eyebrow = feature.eyebrow || 'New collection SS26';
-  const title = feature.title || 'Shop the drop';
+  const eyebrow = feature.eyebrow || DEFAULT_MENU_FEATURE.eyebrow;
+  const title = feature.title || DEFAULT_MENU_FEATURE.title;
 
   return (
     <div className="menu-item menu-feature px-6 pb-1 pt-6 md:px-8" style={{ '--i': stagger }}>
@@ -23,7 +26,13 @@ export default function MenuFeatureTile({ stagger, onNavigate }) {
       >
         {/* Mobile: compact horizontal card */}
         <div className="flex items-center gap-4 p-3 md:hidden">
-          <div aria-hidden="true" className="h-[88px] w-[72px] shrink-0 bg-white/10" />
+          <div className="h-[88px] w-[72px] shrink-0 overflow-hidden bg-white/10">
+            {feature.image?.url ? (
+              <CmsImage image={feature.image} alt={title} ratio="aspect-[3/4]" />
+            ) : (
+              <div aria-hidden="true" className="h-full w-full bg-white/10" />
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <p className="font-sans text-[11px] font-semibold uppercase tracking-label text-white/60">
               {eyebrow}
@@ -37,9 +46,13 @@ export default function MenuFeatureTile({ stagger, onNavigate }) {
 
         {/* Tablet: tall card with a caption strip */}
         <div className="hidden md:block">
-          <div className="flex aspect-[4/5] items-center justify-center bg-white/10 text-[10px] font-semibold uppercase tracking-label text-white/40">
-            Collection image
-          </div>
+          {feature.image?.url ? (
+            <CmsImage image={feature.image} alt={title} ratio="aspect-[4/5]" />
+          ) : (
+            <div className="flex aspect-[4/5] items-center justify-center bg-white/10 text-[10px] font-semibold uppercase tracking-label text-white/40">
+              Collection image
+            </div>
+          )}
           <div className="flex items-center justify-between gap-4 bg-ink px-4 py-3">
             <div>
               <p className="font-sans text-[11px] font-semibold uppercase tracking-label text-white/60">

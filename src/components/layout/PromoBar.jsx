@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import Icon from '../ui/Icon';
-import Price from '../ui/Price';
-import { FREE_SHIPPING_THRESHOLD } from '../../utils/shipping';
+import { isDebugMode } from '../../lib/debug';
 
-/** Announcement bar; CMS copy can replace the default message. */
+/**
+ * Announcement bar. The copy comes from the CMS (`settings.promo_bar`) and the
+ * bar hides when the CMS turns it off — §5.2.
+ */
 export default function PromoBar({
-  message = (
-    <span>
-      FREE SHIPPING WORLDWIDE ON ORDERS OVER <Price amount={FREE_SHIPPING_THRESHOLD} />
-    </span>
-  ),
+  message,
+  hidden = false,
+  isFallback = false,
   dismissible = true,
   className = '',
   showOnDesktop = false,
 }) {
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+  if (hidden || dismissed) return null;
 
   return (
     <div
@@ -24,6 +24,11 @@ export default function PromoBar({
       role="status"
       aria-live="polite"
     >
+      {isFallback && isDebugMode() && (
+        <span className="mr-3 bg-volt px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-normal text-ink">
+          FALLBACK CONTENT: promoBar is empty
+        </span>
+      )}
       <span className="flex items-center gap-2">{message}</span>
       {dismissible && (
         <button

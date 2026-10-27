@@ -9,6 +9,7 @@ import { useCart } from '../../context/CartContext';
 import { useUI } from '../../context/UIContext';
 import { isNavActive, primaryNav } from '../../config/nav';
 import { prefetchMenuData } from '../../hooks/useMenuData';
+import { useSettings } from '../../lib/catalog';
 
 /**
  * Storefront header (spec §2).
@@ -21,6 +22,8 @@ export default function Navbar() {
   const { menuOpen, openMenu, menuTriggerRef } = useUI();
   const queryClient = useQueryClient();
   const [isScrolled, setIsScrolled] = useState(false);
+  const { settings } = useSettings();
+  const storeName = settings?.store?.name || 'AFREAK';
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -57,9 +60,9 @@ export default function Navbar() {
           <Link
             to="/"
             className="hidden lg:inline font-display font-extrabold uppercase text-2xl tracking-tight text-ink"
-            aria-label="AFREAK Home"
+            aria-label={`${storeName} Home`}
           >
-            AFREAK
+            {storeName}
           </Link>
         </div>
 
@@ -67,9 +70,9 @@ export default function Navbar() {
         <Link
           to="/"
           className="lg:hidden absolute left-1/2 -translate-x-1/2 font-display font-extrabold uppercase tracking-tight text-ink text-xl md:text-2xl"
-          aria-label="AFREAK Home"
+          aria-label={`${storeName} Home`}
         >
-          AFREAK
+          {storeName}
         </Link>
 
         {/* Centre: desktop navigation (same config as the menu) */}

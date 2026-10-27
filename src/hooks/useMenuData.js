@@ -2,19 +2,24 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { categories as staticCategories } from '../data/products';
 import { FREE_SHIPPING_THRESHOLD_CENTS, MENU_FEATURE_FALLBACK } from '../config/nav';
+import { FREE_SHIPPING_THRESHOLD } from '../utils/shipping';
 
 /**
  * Menu data (spec §6.6). Both endpoints are optional: the menu opens instantly
  * with static defaults and upgrades itself when the API answers, so it never
  * blocks on the network.
+ *
+ * CMS CONNECTION FIX §4.3: the public API speaks camelCase; the snake_case
+ * keys are still read for one release so a storefront deployed ahead of the
+ * API keeps working.
  */
 export const CATEGORIES_KEY = ['menu', 'categories'];
 export const PUBLIC_SETTINGS_KEY = ['menu', 'public-settings'];
 
 const MENU_QUERY = {
-  staleTime: 5 * 60 * 1000,
+  staleTime: 15 * 1000,
   gcTime: 30 * 60 * 1000,
-  refetchOnWindowFocus: false,
+  refetchOnWindowFocus: true,
   retry: 0,
 };
 
@@ -26,8 +31,8 @@ function staticShopCategories() {
 }
 
 export const DEFAULT_PUBLIC_SETTINGS = {
-  shipping: { threshold_cents: FREE_SHIPPING_THRESHOLD_CENTS },
-  menu_feature: MENU_FEATURE_FALLBACK,
+  shipping: { thresholdCents: FREE_SHIPPING_THRESHOLD_CENTS },
+  menuFeature: MENU_FEATURE_FALLBACK,
 };
 
 const fetchCategories = async () => {
@@ -38,9 +43,16 @@ const fetchCategories = async () => {
 
 const fetchPublicSettings = async () => {
   const data = (await api('/settings/public')).data || {};
+  const shipping = data.shipping || {};
   return {
-    shipping: { ...DEFAULT_PUBLIC_SETTINGS.shipping, ...(data.shipping || {}) },
-    menu_feature: { ...MENU_FEATURE_FALLBACK, ...(data.menu_feature || {}) },
+    shipping: {
+      ...DEFAULT_PUBLIC_SETTINGS.shipping,
+      thresholdCents:
+        shipping.thresholdCents ?? shipping.threshold_cents ?? DEFAULT_PUBLIC_SETTINGS.shipping.thresholdCents,
+      flatCents: shipping.flatCents ?? shipping.flat_cents,
+      expressCents: shipping.expressCents ?? shipping.express_cents,
+    },
+    menuFeature: { ...MENU_FEATURE_FALLBACK, ...(data.menuFeature ?? data.menu_feature ?? {}) },
   };
 };
 
@@ -72,4 +84,15 @@ export function prefetchMenuData(client) {
 export function usePrefetchMenuData() {
   const client = useQueryClient();
   return () => prefetchMenuData(client);
+}
+
+/**
+ * Free-shipping threshold in display euros, from the CMS (`settings.shipping`)
+ * with the local constant as the fallback — audit row 5. Checkout always
+ * re-quotes server-side, so totals stay authoritative.
+ */
+export function useShippingThreshold() {
+  const { settings } = usePublicSettings();
+  const cents = settings?.shipping?.thresholdCents;
+  return typeof cents === 'number' && cents > 0 ? cents / 100 : FREE_SHIPPING_THRESHOLD;
 }

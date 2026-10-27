@@ -6,7 +6,9 @@ import { usePublicSettings } from '../../hooks/useMenuData';
 /** Shipping note + socials + copyright (spec §3.7). */
 export default function MenuFooter({ stagger }) {
   const { settings } = usePublicSettings();
-  const thresholdCents = Number(settings.shipping?.threshold_cents) || FREE_SHIPPING_THRESHOLD_CENTS;
+  const thresholdCents =
+    Number(settings.shipping?.thresholdCents ?? settings.shipping?.threshold_cents) ||
+    FREE_SHIPPING_THRESHOLD_CENTS;
 
   return (
     <div

@@ -1,11 +1,17 @@
-import { lookbookItems as staticLookbook } from '../data/lookbook';
-import { useHome } from '../lib/catalog';
-import Placeholder from '../components/ui/Placeholder';
 import { Link } from 'react-router-dom';
+import { useLookbook } from '../lib/catalog';
+import { DEFAULT_LOOKBOOK } from '../data/defaults';
+import CmsImage from '../components/ui/CmsImage';
+import { ContentUnavailable, FallbackNotice, SectionSkeleton } from '../components/ui/ContentState';
 
+/**
+ * Full lookbook page (CMS CONNECTION FIX §4.4/§5.2): every active
+ * `lookbook_items` row, in CMS order.
+ */
 export default function Lookbook() {
-  const { home } = useHome();
-  const items = home?.lookbook?.length ? home.lookbook : staticLookbook;
+  const { items: cmsItems, isPending, isError, refetch } = useLookbook();
+  const usingFallback = !isPending && !isError && cmsItems.length === 0;
+  const items = cmsItems.length ? cmsItems : DEFAULT_LOOKBOOK;
 
   return (
     <div className="min-h-screen bg-paper">
@@ -19,49 +25,47 @@ export default function Lookbook() {
           </p>
         </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" role="list">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              to={item.linkUrl || '#'}
-              className="group block overflow-hidden"
-              aria-label={`View ${item.label}`}
-              role="listitem"
+        {isError ? (
+          <ContentUnavailable label="LOOKBOOK UNAVAILABLE" onRetry={() => refetch()} />
+        ) : isPending ? (
+          <SectionSkeleton count={8} ratio="aspect-[3/4]" columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-4" />
+        ) : (
+          <>
+            <FallbackNotice show={usingFallback} section="lookbook" reason="is empty" />
+            <div
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+              role="list"
             >
-              <div className="aspect-[3/4] bg-stone overflow-hidden">
-                <Placeholder
-                  ratio="aspect-[3/4]"
-                  label={item.label}
-                  src={item.image}
-                  alt={item.label}
-                  className="grayscale group-hover:scale-[1.03] transition-transform duration-500"
-                />
-              </div>
-              <div className="mt-4 text-center">
-                <span className="font-sans font-medium uppercase text-xs tracking-label text-ink">
-                  {item.label}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Pagination placeholder */}
-        <nav className="mt-12 flex justify-center" aria-label="Lookbook pagination">
-          <div className="flex items-center gap-2">
-            <button className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist" aria-label="Previous">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center bg-ink text-paper" aria-label="Page 1">1</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist" aria-label="Page 2">2</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist" aria-label="Page 3">3</button>
-            <span className="w-10 h-10 flex items-center justify-center text-graphite">…</span>
-            <button className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist" aria-label="Page 6">6</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-line text-ink hover:bg-mist" aria-label="Next">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
-          </div>
-        </nav>
+              {items.map((item) => (
+                <Link
+                  key={item.id}
+                  to={item.linkUrl || '/lookbook'}
+                  className="group block overflow-hidden"
+                  aria-label={item.label ? `View ${item.label}` : 'View look'}
+                  role="listitem"
+                >
+                  <div className="aspect-[3/4] bg-stone overflow-hidden">
+                    <CmsImage
+                      image={item.image}
+                      alt={item.label}
+                      ratio="aspect-[3/4]"
+                      sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                      grayscale
+                      imgClassName="group-hover:scale-[1.03] transition-transform duration-500"
+                    />
+                  </div>
+                  {item.label && (
+                    <div className="mt-4 text-center">
+                      <span className="font-sans font-medium uppercase text-xs tracking-label text-ink">
+                        {item.label}
+                      </span>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
