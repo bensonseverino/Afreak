@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { mapImage } from '../lib/catalog';
 import { categories as staticCategories } from '../data/products';
 import { DEFAULT_FOOTER, DEFAULT_STORE } from '../data/defaults';
 import { FREE_SHIPPING_THRESHOLD_CENTS, MENU_FEATURE_FALLBACK } from '../config/nav';
@@ -69,6 +70,7 @@ const fetchPublicSettings = async () => {
   const data = (await api('/settings/public')).data || {};
   const shipping = data.shipping || {};
   const store = data.store || {};
+  const menuFeature = { ...MENU_FEATURE_FALLBACK, ...(data.menuFeature ?? data.menu_feature ?? {}) };
   return {
     shipping: {
       ...DEFAULT_PUBLIC_SETTINGS.shipping,
@@ -87,7 +89,7 @@ const fetchPublicSettings = async () => {
     promoBar: data.promoBar ?? null,
     shippingBanner: data.shippingBanner ?? data.shipping_banner ?? null,
     currency: data.currency ?? null,
-    menuFeature: { ...MENU_FEATURE_FALLBACK, ...(data.menuFeature ?? data.menu_feature ?? {}) },
+    menuFeature: { ...menuFeature, image: mapImage(menuFeature.image) },
   };
 };
 

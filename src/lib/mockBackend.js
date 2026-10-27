@@ -886,6 +886,21 @@ const handlers = {
   /* ---------------------------------------------------------------- *
    * Public storefront data (menu, footer). No auth required.
    * ---------------------------------------------------------------- */
+  // Forms: the mock acknowledges submissions so the UI flow stays testable
+  // without a Worker. Real records are written by the Hono API.
+  'POST /forms/newsletter': () => ({ subscribed: true }),
+  'POST /forms/contact': () => ({ received: true }),
+  'POST /forms/notify-me': () => ({ received: true }),
+  'POST /forms/custom-print': () => ({ received: true }),
+  'POST /uploads/artwork': () => ({ artworkKey: 'artwork/mock/artwork.png' }),
+
+  // Reviews: approved list + pending submission.
+  'GET /products/:slug/reviews': () => ({
+    data: [],
+    meta: { total: 0, page: 1, pages: 1 },
+  }),
+  'POST /products/:slug/reviews': () => ({ received: true }),
+
   'GET /categories': () =>
     categories
       .filter((category) => category.slug !== 'all')
