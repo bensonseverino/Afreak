@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { colorHex, colorName } from '../data/products';
-import { findVariantId, sizesForColor, useProduct } from '../lib/catalog';
+import { findVariantId, useProduct } from '../lib/catalog';
 import { useProductVariants } from '../hooks/useProductVariants';
 import useDocumentMeta from '../hooks/useDocumentMeta';
 import { TRACK_TYPES, track } from '../lib/analytics';

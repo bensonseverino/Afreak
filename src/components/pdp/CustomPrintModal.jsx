@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Placeholder from '../ui/Placeholder';
@@ -19,15 +19,14 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    if (open) {
-      setFileName(null);
-      setPlacement('Front');
-      setArtworkKey(null);
-      setUploading(false);
-      setError('');
-    }
-  }, [open]);
+  const close = () => {
+    setFileName(null);
+    setPlacement('Front');
+    setArtworkKey(null);
+    setUploading(false);
+    setError('');
+    onClose?.();
+  };
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -59,13 +58,13 @@ export default function CustomPrintModal({ open, onClose, onSave, priceAdd = 15 
   const handleSave = () => {
     if (!artworkKey) return;
     onSave?.({ enabled: true, placement, fileName, artworkKey });
-    onClose?.();
+    close();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Custom print"
       size="md"
       footer={

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import Drawer from '../ui/Drawer';
 import Button from '../ui/Button';
 import ColorSwatches from './ColorSwatches';
 import SizeGrid from './SizeGrid';
 import { useCart } from '../../context/CartContext';
 import Price from '../ui/Price';
-import { colorHex, colorName } from '../../data/products';
+import { colorName } from '../../data/products';
 import { findVariantId, sizesForColor } from '../../lib/catalog';
 
 // Quick-add sheet: color + size + confirm. Mobile's primary conversion path.
@@ -15,33 +15,32 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
   const [size, setSize] = useState(null);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (open && product) {
-      // Use color name (not hex) for selection
-      setColor(product.colors?.[0]?.name ?? null);
-      setSize(null);
-      setError(false);
-    }
-  }, [open, product]);
-
   if (!product) return null;
 
-  const selectedColor = product.colors?.find((c) => c.name === color);
+  // Default to the first color without an effect; a stale selection from a
+  // previous product falls back to that product's first color too.
+  const activeColor =
+    product.colors?.find((c) => c.name === color)?.name ?? product.colors?.[0]?.name ?? null;
+  const selectedColor = product.colors?.find((c) => c.name === activeColor);
   const selectedColorName = colorName(selectedColor);
   const sizes = sizesForColor(product, selectedColorName);
   const sizeOptions = sizes.length ? sizes : product.sizes ?? [];
 
   // Find variant for current selection to get price + image
-  const variant = useMemo(
-    () =>
-      product.variants?.find(
-        (v) => v.colorName === selectedColorName && v.size === size && v.active !== false,
-      ) ?? null,
-    [product.variants, selectedColorName, size],
-  );
+  const variant =
+    product.variants?.find(
+      (v) => v.colorName === selectedColorName && v.size === size && v.active !== false,
+    ) ?? null;
   const price = variant?.price ?? product.price;
   const stock = variant?.stock ?? sizeOptions.find((s) => s.label === size)?.stock ?? 0;
   const colorImage = product.colorImages?.get(selectedColorName) ?? product.images?.[0] ?? null;
+
+  const close = () => {
+    setColor(null);
+    setSize(null);
+    setError(false);
+    onClose?.();
+  };
 
   const confirm = () => {
     if (!size) {
@@ -64,13 +63,13 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
       kind: 'product',
     });
     onAdded?.({ color: selectedColorName, size });
-    onClose?.();
+    close();
   };
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Select options"
       variant="bottom"
       footer={
@@ -92,7 +91,7 @@ export default function SizeSheet({ open, product, onClose, onAdded }) {
             <p className="font-sans text-[13px] font-medium text-ink mb-1">
               Color: {colorName(selectedColor)}
             </p>
-            <ColorSwatches colors={product.colors} selected={color} onSelect={setColor} />
+            <ColorSwatches colors={product.colors} selected={activeColor} onSelect={setColor} />
           </div>
         )}
 

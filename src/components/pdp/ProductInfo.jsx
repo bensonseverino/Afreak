@@ -49,6 +49,7 @@ export default function ProductInfo({
   useEffect(() => {
     if (!error) return;
     sizeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot shake animation driven by a prop change
     setShake(true);
     const t = setTimeout(() => setShake(false), 500);
     return () => clearTimeout(t);

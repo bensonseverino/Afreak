@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- this module intentionally co-locates the provider with its consumer hook and cart line helpers */
 import {
   createContext,
   useContext,

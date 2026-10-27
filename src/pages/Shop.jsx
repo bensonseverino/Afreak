@@ -48,6 +48,7 @@ export default function Shop({ category: categoryParam }) {
 
   // Re-seed when a link (header, menu, footer) changes the URL facets.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- URL facets are an external source of truth
     setFilters((prev) => ({
       ...prev,
       category: urlCategory ? [urlCategory] : [],
