@@ -3,6 +3,7 @@ import Placeholder from '../ui/Placeholder';
 import Icon from '../ui/Icon';
 import QuantityStepper from '../ui/QuantityStepper';
 import Price from '../ui/Price';
+import { paths } from '../../lib/productPaths';
 
 // Responsive cart line: mobile stacked, tablet two-row, desktop 5-column grid.
 export default function CartLine({ line, isNew = false, onQtyChange, onRemove, className = '' }) {
@@ -13,8 +14,8 @@ export default function CartLine({ line, isNew = false, onQtyChange, onRemove, c
       className={`grid grid-cols-[88px_1fr] gap-4 border-y border-line py-4 sm:border sm:p-4 md:grid-cols-[96px_1fr] lg:grid-cols-[112px_1fr_auto_auto_auto] lg:items-center lg:gap-6 ${className}`}
     >
       <div className="row-span-2 lg:row-span-1 w-full aspect-[88/110] md:aspect-[96/120] lg:aspect-auto lg:w-[112px] lg:h-[128px] bg-card overflow-hidden">
-        {line.slug ? (
-          <Link to={`/product/${line.slug}`} aria-label={`View ${line.name}`} className="block w-full h-full">
+        {line.slug && paths.product(line.slug) ? (
+          <Link to={paths.product(line.slug)} aria-label={`View ${line.name}`} className="block w-full h-full">
             <Placeholder ratio="h-full" label="" src={line.image} alt={line.name} className="w-full h-full" />
           </Link>
         ) : (
@@ -29,8 +30,8 @@ export default function CartLine({ line, isNew = false, onQtyChange, onRemove, c
           </p>
         )}
         <h3 className="font-display font-extrabold uppercase text-[16px] lg:text-[18px] text-ink leading-tight">
-          {line.slug ? (
-            <Link to={`/product/${line.slug}`} className="hover:text-graphite transition-colors">
+          {line.slug && paths.product(line.slug) ? (
+            <Link to={paths.product(line.slug)} className="hover:text-graphite transition-colors">
               {line.name}
             </Link>
           ) : (

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useMe, ME_KEY } from '../hooks/useCustomer';
-import { getProductById } from '../data/products';
+import { getProductBySlug } from '../data/products';
 
 const LOCAL_KEY = 'afreak.wishlist.v1';
 const WishlistContext = createContext(null);
@@ -74,7 +74,11 @@ export function WishlistProvider({ children }) {
 
   // Full product objects for the wishlist page.
   const list = useMemo(
-    () => (signedIn ? serverQuery.data || [] : localIds.map(getProductById).filter(Boolean)),
+    () => (signedIn ? serverQuery.data || [] : localIds.map((id) => {
+      // Try slug first (API shape), fallback to id lookup
+      const product = getProductBySlug(String(id));
+      return product || getProductById(id);
+    }).filter(Boolean)),
     [signedIn, serverQuery.data, localIds]
   );
 

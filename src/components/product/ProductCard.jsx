@@ -7,6 +7,7 @@ import Icon from '../ui/Icon';
 import Price from '../ui/Price';
 import { colorHex } from '../../data/products';
 import { useWishlist } from '../../hooks/useWishlist';
+import { paths } from '../../lib/productPaths';
 
 export default function ProductCard({ product, className = '', showWishlist = true }) {
   const { slug, name, price, oldPrice, colors = [], isNew, images = [], colorImages = new Map(), priceFrom, soldOut } = product;
@@ -32,15 +33,18 @@ export default function ProductCard({ product, className = '', showWishlist = tr
     setActiveColor(null);
   };
 
+  const productPath = paths.product(slug);
+
   return (
     <div className={`group relative ${className}`}>
-      <Link
-        to={`${slug}?${firstColorName ? `color=${encodeURIComponent(firstColorName)}` : ''}`}
-        className="block"
-        aria-label={`View ${name}`}
-        onMouseEnter={() => setActiveColor(firstColorName)}
-        onMouseLeave={handleSwatchLeave}
-      >
+      {productPath ? (
+        <Link
+          to={`${productPath}${firstColorName ? `?color=${encodeURIComponent(firstColorName)}` : ''}`}
+          className="block"
+          aria-label={`View ${name}`}
+          onMouseEnter={() => setActiveColor(firstColorName)}
+          onMouseLeave={handleSwatchLeave}
+        >
         <div className="relative overflow-hidden bg-card aspect-[5/6] mb-3">
           <Placeholder ratio="aspect-[5/6]" label="PRODUCT" src={activeImage} alt={name} />
           {(isNew || oldPrice) && (
@@ -77,6 +81,28 @@ export default function ProductCard({ product, className = '', showWishlist = tr
           />
         </div>
       </Link>
+      ) : (
+        /* No slug — render card without a link, warn in console (paths.product). */
+        <div className="block" aria-hidden="true">
+          <div className="relative overflow-hidden bg-card aspect-[5/6] mb-3">
+            <Placeholder ratio="aspect-[5/6]" label="PRODUCT" src={activeImage} alt={name} />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="font-sans font-bold uppercase text-[13px] text-ink">
+              {name}
+            </h3>
+            <div className="flex items-center gap-3">
+              <span className="font-sans text-[13px] text-ink"><Price amount={price} /></span>
+              {oldPrice && (
+                <span className="font-sans text-[13px] text-graphite line-through"><Price amount={oldPrice} /></span>
+              )}
+            </div>
+            {showFromPrice && (
+              <p className="font-sans text-[11px] text-graphite">From <Price amount={priceFrom} /></p>
+            )}
+          </div>
+        </div>
+      )}
 
       {showWishlist && (
         <button

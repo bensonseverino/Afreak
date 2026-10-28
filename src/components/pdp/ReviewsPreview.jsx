@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import Stars from '../ui/Stars';
 import Button from '../ui/Button';
 import { api } from '../../lib/api';
 import { formatCount } from '../../utils/format';
+import { paths } from '../../lib/productPaths';
 
 const EMPTY_FORM = { name: '', email: '', rating: '5', title: '', body: '' };
 
@@ -96,6 +98,9 @@ export default function ReviewsPreview({
           <p className="font-display font-extrabold text-[56px] leading-none text-ink">{rating}</p>
           <Stars value={rating} size={16} className="mt-2" />
           <p className="text-[12px] text-graphite mt-2">Based on {formatCount(reviewCount)} reviews</p>
+          <Link to={paths.product(slug)} className="text-[12px] text-ink underline mt-3 inline-block">
+            View product
+          </Link>
         </div>
 
         <ul className="space-y-2">

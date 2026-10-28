@@ -7,6 +7,7 @@ import Skeleton from '../ui/Skeleton';
 import { ContentUnavailable, FallbackNotice } from '../ui/ContentState';
 import { useHome } from '../../lib/catalog';
 import { DEFAULT_SHOWCASE } from '../../data/defaults';
+import { paths } from '../../lib/productPaths';
 
 /**
  * Product showcase (CMS CONNECTION FIX §5.2): the product picked at
@@ -89,8 +90,8 @@ export default function ProductShowcase() {
                 {data.description}
               </p>
             )}
-            {data.slug && (
-              <Link to={`/product/${data.slug}`} className="block w-full lg:w-auto">
+            {data.slug && paths.product(data.slug) && (
+              <Link to={paths.product(data.slug)} className="block w-full lg:w-auto">
                 <Button variant="solid" className="w-full lg:w-auto">
                   VIEW PRODUCT
                 </Button>

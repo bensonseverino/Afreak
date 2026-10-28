@@ -9,6 +9,7 @@ import useCurrency from '../../hooks/useCurrency';
 import useCartDisplayTotals from '../../hooks/useCartDisplayTotals';
 import Price from '../ui/Price';
 import { useShippingThreshold } from '../../hooks/useMenuData';
+import { paths } from '../../lib/productPaths';
 
 // Mini-cart: right drawer on ≥768px, bottom sheet on mobile.
 export default function CartDrawer() {
@@ -73,9 +74,9 @@ export default function CartDrawer() {
           <ul className="mt-2 divide-y divide-line">
             {items.map((l, index) => (
               <li key={l.lineId} className="py-4 flex gap-3">
-                {l.slug ? (
+                {l.slug && paths.product(l.slug) ? (
                   <Link
-                    to={`/product/${l.slug}`}
+                    to={paths.product(l.slug)}
                     onClick={closeDrawer}
                     className="w-[72px] h-[90px] bg-card shrink-0 overflow-hidden"
                   >
@@ -89,9 +90,9 @@ export default function CartDrawer() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between gap-2">
-                    {l.slug ? (
+                    {l.slug && paths.product(l.slug) ? (
                       <Link
-                        to={`/product/${l.slug}`}
+                        to={paths.product(l.slug)}
                         onClick={closeDrawer}
                         className="text-[13px] font-semibold uppercase text-ink truncate hover:text-graphite"
                       >

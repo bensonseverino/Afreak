@@ -315,6 +315,7 @@ export function useProduct(slug) {
 
       return { ...product, pairWith, related };
     },
+    retry: (n, err) => err.status !== 404 && n < 2,
     ...CATALOG_QUERY,
   });
   return {

@@ -5,6 +5,7 @@ import Icon from '../ui/Icon';
 import Carousel from '../ui/Carousel';
 import SizeSheet from './SizeSheet';
 import Price from '../ui/Price';
+import { paths } from '../../lib/productPaths';
 
 // Scroll-snap product row; "Add to bag" opens the quick-add size sheet.
 export default function PairItWith({ products = [], className = '', onAdd }) {
@@ -20,7 +21,7 @@ export default function PairItWith({ products = [], className = '', onAdd }) {
         itemClass="w-[44%] md:w-[calc((100%-2rem)/3)] lg:w-[calc((100%-3rem)/4)]"
         renderItem={(p) => (
           <div>
-            <Link to={`/product/${p.slug}`} className="block group">
+            <Link to={paths.product(p.slug)} className="block group">
               <div className="aspect-[3/4] bg-card mb-3 overflow-hidden">
                 <Placeholder ratio="h-full" label="" src={p.images?.[0]} alt={p.name} className="w-full h-full" />
               </div>
