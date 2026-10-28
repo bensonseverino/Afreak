@@ -190,3 +190,60 @@ All product link centralization and PDP error handling fixes are complete and ve
 ---
 
 *Frontend fixes complete and verified locally. Production 404 requires API deployment/reconfiguration — see "Fix required" above.*
+
+---
+
+## Resolution (production verified)
+
+### Root cause
+
+The deployed storefront was pointing at the right API (`VITE_API_BASE=https://afreakcms.pages.dev`
+is set in the Pages project), but **every product page crashed during render**. The error
+boundary then replaced the page with "Something went wrong", which reads as "the product
+page is broken/404".
+
+Measured cause (`docs` evidence from the browser console on the live URL):
+
+```
+TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at ProductDetail-*.js (Array.find)
+    at useProductVariants deep-link effect
+```
+
+`useProductVariants` read the colour/size options from the **raw API payload**, where a color
+option value is `{ id, value, swatchHex }`. The hook expected the storefront shape
+`{ name, hex }` (the shape `detailToProduct` in `src/lib/catalog.js` already produces), so
+`c.name` was `undefined` and `c.name.toLowerCase()` threw on the very first render with URL
+params — for every product.
+
+A second, related report — clicking a product landing on `/shop/<slug>` instead of
+`/product/<slug>` — was a stale bundle: product links were still built by hand rather than
+through `src/lib/productPaths.js`. Production now emits `/product/<slug>?color=…`.
+
+### Fix
+
+`src/hooks/useProductVariants.js`:
+- build `allColorValues` / `allSizeValues` from the mapped `product.colors` / `product.sizes`,
+  normalising any raw option value (`value`/`swatchHex`/`id`) as a fallback;
+- guard the URL-param comparison with `(c.name ?? '')`;
+- sort sizes into the canonical run (the API returns them alphabetically);
+- resolve the gallery color key through the normalised colours instead of raw option values.
+
+### Verification (live, https://afreak.pages.dev)
+
+| Check | Result |
+|---|---|
+| `GET /api/health` on the API origin | 200 JSON (`{"data":{"ok":true}}`) |
+| `GET /api/products` | 200, 12 products, all with lowercase, URL-safe slugs |
+| `GET /api/products/<slug>` for heavyweight-hoodie / unity-heavyweight-tee / tech-cargo-hoodie | 200 JSON each |
+| `/product/heavyweight-hoodie` renders | ✅ h1 "Heavyweight Hoodie", sizes XS→XL in run order, sold-out `L` marked |
+| `/product/unity-heavyweight-tee` renders | ✅ h1 "Unity Heavyweight Tee" |
+| `/product/shoulder-bag` renders | ✅ h1 "Shoulder Bag" |
+| Product cards on `/shop` link to | `/product/<slug>?color=…` |
+| Deep links `/shop`, `/cart`, `/lookbook`, `/account/login` | 200, app shell served |
+| Console after the fix | only the expected `401 /api/account/me` from the signed-out session check — no render errors |
+
+Note: `scripts/diagnose-product-404.mjs` probes `/api/*` on whatever `SITE_URL` it is given.
+Against `https://afreak.pages.dev` those two API checks will always report HTML, because the
+API lives on a separate Pages project (`afreakcms.pages.dev`); the page/deep-link checks are
+the meaningful ones for that origin.

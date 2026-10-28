@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Local Wrangler state and scratch files — never commit credentials
+.wrangler
+wrangler-tmp/
+.wrangler-oauth-token.tmp
+*.tmp
+*.bak
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
