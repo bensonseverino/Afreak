@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { clearIdentity } from '../lib/identity';
+import { queryClient } from '../lib/queryClient';
 
 export const ME_KEY = ['me'];
 
@@ -10,11 +11,26 @@ export const ME_KEY = ['me'];
  *   GET /api/account/me  →  { customer, counts }
  * A 401 (signed out) is a valid state, so it is not retried and consumers read
  * `data?.customer` to tell the two states apart.
+ *
+ * The real API returns 401 for signed-out visitors. That is a normal outcome for
+ * the public storefront, not an error, so we treat it as a successful "no session"
+ * result instead of letting it throw and crash the app render.
  */
 export function useMe() {
   return useQuery({
     queryKey: ME_KEY,
-    queryFn: async () => (await api('/account/me')).data,
+    queryFn: async () => {
+      try {
+        const res = await api('/account/me');
+        return res.data;
+      } catch (err) {
+        // A 401 (no session) is a normal signed-out outcome, not an app-breaking
+        // error. Return a valid "not signed in" shape so the rest of the app keeps
+        // rendering. Any other failure also returns a safe shape rather than
+        // throwing.
+        return { customer: null, counts: {} };
+      }
+    },
     retry: false,
     staleTime: 30 * 1000,
   });

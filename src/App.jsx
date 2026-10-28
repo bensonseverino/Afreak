@@ -1,5 +1,6 @@
 ﻿import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { AccountProvider } from './context/AccountContext';
 import { CartProvider } from './context/CartContext';
 import { CurrencyProvider } from './context/CurrencyContext';
@@ -92,7 +93,8 @@ function Overlays() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
       <RouterBridge />
       <CurrencyProvider>
         <AccountProvider>
@@ -167,8 +169,8 @@ function App() {
           </CartProvider>
         </AccountProvider>
       </CurrencyProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
-
 export default App;

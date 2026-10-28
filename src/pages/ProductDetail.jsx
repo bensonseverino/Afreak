@@ -47,7 +47,7 @@ export default function ProductDetail() {
     console.groupEnd();
   }, [slug]);
 
-  const { product, isPending, notFound } = useProduct(slug);
+  const { product, isPending, notFound, error } = useProduct(slug);
 
   // CMS SEO fields (audit row 16) — falls back to the product name.
   useDocumentMeta(product?.seo?.title || product?.name, product?.seo?.description);
@@ -109,19 +109,42 @@ export default function ProductDetail() {
   }
 
   if (!product) {
+    if (notFound) {
+      // Designed 'Product not found' page — only for a real HTTP 404.
+      return (
+        <div className="max-w-wide mx-auto px-6 py-20 text-center">
+          <h1 className="font-display font-bold uppercase text-3xl mb-4">
+            Product not found
+          </h1>
+          <p className="text-graphite mb-8">
+            The product you are looking for does not exist.
+          </p>
+          <Link to="/shop" className="font-sans font-semibold uppercase text-xs tracking-label text-ink underline">
+            Back to shop
+          </Link>
+        </div>
+      );
+    }
+    // Network / 5xx / malformed response — show an error state with retry.
     return (
       <div className="max-w-wide mx-auto px-6 py-20 text-center">
         <h1 className="font-display font-bold uppercase text-3xl mb-4">
-          {notFound ? 'Product not found' : 'Something went wrong'}
+          Something went wrong
         </h1>
         <p className="text-graphite mb-8">
-          {notFound
-            ? 'The product you are looking for does not exist.'
-            : 'We could not load this product right now.'}
+          We could not load this product right now.
         </p>
-        <Link to="/shop" className="font-sans font-semibold uppercase text-xs tracking-label text-ink underline">
-          Back to shop
-        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            // Re-run the query via the query client so the hook can retry.
+            const qc = window.__CMS_BRIDGE__?.queryClient;
+            if (qc) qc.invalidateQueries({ queryKey: ['catalog', 'product', slug] });
+          }}
+          className="font-sans font-semibold uppercase text-xs tracking-label text-ink underline"
+        >
+          Try again
+        </button>
       </div>
     );
   }
