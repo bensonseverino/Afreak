@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+/** Canonical size run; unknown labels sort last. */
+const SIZE_RUN = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+
 /** Slugify a string for URL query params. */
 function slugify(s) {
   return String(s)
@@ -37,9 +40,42 @@ export function useProductVariants(product) {
   const colorOption = options.find((o) => o.type === 'color');
   const sizeOption = options.find((o) => o.type === 'size');
 
-  // All available color/size values from options (not just those with variants)
-  const allColorValues = colorOption?.values ?? product?.colors?.map((c) => ({ name: c.name, hex: c.hex })) ?? [];
-  const allSizeValues = sizeOption?.values?.map((v) => v.value) ?? product?.sizes ?? [];
+  // All available color/size values. `product.colors` / `product.sizes` are
+  // already mapped by the API layer (`detailToProduct`); raw `options` values
+  // use `value` instead of `name`, so normalise both to one shape.
+  const allColorValues = useMemo(() => {
+    const mapped = (product?.colors ?? [])
+      .map((c) => ({
+        name: c.name ?? c.value,
+        hex: c.hex ?? c.swatchHex ?? '#000000',
+        swatchImageUrl: c.swatchImageUrl ?? null,
+        optionValueId: c.optionValueId ?? c.id,
+      }))
+      .filter((c) => Boolean(c.name));
+    if (mapped.length) return mapped;
+    return (colorOption?.values ?? [])
+      .map((v) => ({
+        name: v.name ?? v.value,
+        hex: v.swatchHex ?? v.hex ?? '#000000',
+        swatchImageUrl: v.swatchImageUrl ?? null,
+        optionValueId: v.optionValueId ?? v.id,
+      }))
+      .filter((c) => Boolean(c.name));
+  }, [product?.colors, colorOption]);
+
+  const allSizeValues = useMemo(() => {
+    // The API returns option values alphabetically; restore the storefront's size run.
+    const rank = (label) => {
+      const i = SIZE_RUN.indexOf(label);
+      return i === -1 ? SIZE_RUN.length : i;
+    };
+    const mapped = (product?.sizes ?? [])
+      .map((s) => (typeof s === 'string' ? s : s?.label ?? s?.value))
+      .filter(Boolean)
+      .sort((a, b) => rank(a) - rank(b));
+    if (mapped.length) return mapped;
+    return (sizeOption?.values ?? []).map((v) => v.value ?? v.name).filter(Boolean);
+  }, [product?.sizes, sizeOption]);
 
   /** Find a variant matching the current selection. */
   const selectedVariant = useMemo(() => {
@@ -93,7 +129,7 @@ export function useProductVariants(product) {
   const galleryImages = useMemo(() => {
     if (!product?.images?.length) return [];
     const color = selection.Color;
-    const colorKey = colorOption?.values.find((v) => v.value === color)?.id ?? color;
+    const colorKey = allColorValues.find((c) => c.name === color)?.optionValueId ?? color;
     const colorSpecific = product.images.filter(
       (img) =>
         (img.optionValueId && colorKey && img.optionValueId === colorKey) ||
@@ -107,7 +143,7 @@ export function useProductVariants(product) {
     return [...pool].sort(
       (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || (a.position ?? 0) - (b.position ?? 0),
     ).map((i) => i.url);
-  }, [product?.images, selection.Color, colorOption]);
+  }, [product?.images, selection.Color, allColorValues]);
 
   /** Current effective price (variant override or base). */
   const price = useMemo(() => {
@@ -167,20 +203,44 @@ export function useProductVariants(product) {
 
     // Match URL color to option value (by slug or exact name)
     const colorMatch = allColorValues.find(
-      (c) => slugify(c.name) === urlColor || c.name.toLowerCase() === (urlColor ?? '').toLowerCase(),
+      (c) => slugify(c.name) === urlColor || (c.name ?? '').toLowerCase() === (urlColor ?? '').toLowerCase(),
     );
     const sizeMatch = allSizeValues.find((s) => s.toLowerCase() === (urlSize ?? '').toLowerCase());
 
-    // Default: first color that has any available size
-    let defaultColor = colorMatch?.name ?? allColorValues.find((c) => allSizeValues.some((s) => isComboAvailable(c.name, s)))?.name ?? allColorValues[0]?.name ?? null;
-    let defaultSize = sizeMatch ?? allSizeValues.find((s) => isComboAvailable(defaultColor, s)) ?? allSizeValues[0] ?? null;
+    // Default fallback color — predictable in the common case (no selected color, no URL color)
+    const fallbackColor = allColorValues[0]?.name ?? null;
 
-    // If URL size is not available in chosen color, pick first available
-    if (!isComboAvailable(defaultColor, defaultSize)) {
-      defaultSize = allSizeValues.find((s) => isComboAvailable(defaultColor, s)) ?? defaultSize;
+    // Default: URL color, else first color that has any available size, else first color, else null
+    const defaultColor =
+      colorMatch?.name ??
+      allColorValues.find((c) => allSizeValues.some((s) => isComboAvailable(c.name, s)))?.name ??
+      fallbackColor;
+
+    // If the chosen/default color has no stock at all, fall back to the first color
+    // that does; once no color can be stocked, leave the color empty.
+    const chosenColor = defaultColor ?? fallbackColor;
+    const defaultSize =
+      sizeMatch ??
+      allSizeValues.find((s) => isComboAvailable(chosenColor, s)) ??
+      (chosenColor ? allSizeValues[0] : null);
+
+    // If the URL size is not available in the chosen color, pick the first available
+    // size for that color (or keep the chosen size if it is still a valid value).
+    if (chosenColor && !isComboAvailable(chosenColor, defaultSize)) {
+      const picked = allSizeValues.find((s) => isComboAvailable(chosenColor, s));
+      if (picked) {
+        setSelection({ Color: chosenColor, Size: picked });
+      } else if (defaultColor || fallbackColor) {
+        setSelection({ Color: defaultColor ?? fallbackColor, Size: defaultSize });
+      } else {
+        setSelection({ Color: null, Size: null });
+      }
+    } else if (defaultColor || fallbackColor) {
+      setSelection({ Color: defaultColor ?? fallbackColor, Size: defaultSize });
+    } else {
+      // Keep selection idle when no color is chosen and no stock is available.
+      setSelection({ Color: null, Size: null });
     }
-
-    setSelection({ Color: defaultColor, Size: defaultSize });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id, searchParams.toString()]);
 
