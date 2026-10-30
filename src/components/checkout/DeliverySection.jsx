@@ -6,8 +6,8 @@ import Price from '../ui/Price';
 import { COUNTRIES } from '../../utils/countries';
 
 export default function DeliverySection({ form, errors, onChange }) {
-  const { subtotal, shippingMethod, setShippingMethod } = useCart();
-  const { freeShippingThreshold, flat, express } = useShippingRates();
+  const { shipping, shippingMethod, setShippingMethod } = useCart();
+  const { flat, express } = useShippingRates();
   const methods = [
     { id: 'standard', label: 'Standard', note: '4–7 business days', price: flat },
     { id: 'express', label: 'Express', note: '1–3 business days', price: express },
@@ -131,9 +131,9 @@ export default function DeliverySection({ form, errors, onChange }) {
             title={m.label}
             note={m.note}
             price={
-              m.id === 'standard' && subtotal >= freeShippingThreshold
-                ? 'FREE'
-                : <Price amount={m.price} />
+              // Show what is actually charged, so a quote that keeps standard
+              // shipping paid never contradicts the summary.
+              m.id === 'standard' && shipping === 0 ? 'FREE' : <Price amount={m.price} />
             }
           />
         ))}
