@@ -17,7 +17,10 @@ export default function Gallery({ images = [], badges = [], wishlisted = false, 
   const [lightbox, setLightbox] = useState(false);
   const [origin, setOrigin] = useState('50% 50%');
   const mobileRef = useRef(null);
-  const total = images.length || 1;
+  // A product with no CMS images still needs one slide, so the fallback below
+  // can say "IMAGE UNAVAILABLE" instead of leaving an empty carousel.
+  const slides = images.length ? images : [null];
+  const total = slides.length;
 
   // Reset index when images change (color switch)
   useEffect(() => {
@@ -112,7 +115,7 @@ export default function Gallery({ images = [], badges = [], wishlisted = false, 
           onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
           className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
         >
-          {images.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setLightbox(true)}
@@ -180,7 +183,7 @@ export default function Gallery({ images = [], badges = [], wishlisted = false, 
         <div className="relative bg-ink">
           <Placeholder
             ratio="aspect-[3/4]"
-            label=""
+            label={images.length ? '' : 'IMAGE UNAVAILABLE'}
             src={images[index]}
             alt={`${alt} — image ${index + 1}`}
             className="w-full bg-ink"
