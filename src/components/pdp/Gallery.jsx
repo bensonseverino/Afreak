@@ -91,7 +91,8 @@ export default function Gallery({ images = [], badges = [], wishlisted = false, 
   const slide = (i, eager) => (
     <Placeholder
       ratio="h-full"
-      label=""
+      // No CMS image for this product: say so instead of a blank slide.
+      label={images.length ? '' : 'IMAGE UNAVAILABLE'}
       src={images[i]}
       alt={`${alt} — image ${i + 1}`}
       loading={eager ? 'eager' : 'lazy'}

@@ -54,7 +54,7 @@ export const DEFAULT_LOOKBOOK = [
 export const DEFAULT_SHOWCASE = {
   name: 'UTILITY HOODIE',
   slug: 'utility-hoodie',
-  price: 120,
+  price: 17400,
   description:
     'The Utility Hoodie is engineered for daily performance. Water-resistant shell, multiple utility pockets, and adjustable hem for a customizable fit.',
   features: [
@@ -67,14 +67,14 @@ export const DEFAULT_SHOWCASE = {
 
 export const DEFAULT_SHIPPING_BANNER = {
   title: 'FREE SHIPPING WORLDWIDE',
-  subtitle: 'On all orders over €150',
+  subtitle: 'On all orders over KSh 15,000',
   ctaLabel: 'SHOP NOW',
   ctaUrl: '/shop',
 };
 
 export const DEFAULT_PROMO_BAR = {
   active: true,
-  text: 'FREE SHIPPING WORLDWIDE ON ORDERS OVER €150',
+  text: 'FREE SHIPPING WORLDWIDE ON ORDERS OVER KSH 15,000',
 };
 
 export const DEFAULT_FOOTER = {
@@ -97,7 +97,7 @@ export const DEFAULT_STORE = {
 };
 
 export const DEFAULT_SHIPPING_RULES = {
-  thresholdCents: 15000,
-  flatCents: 600,
-  expressCents: 1200,
+  thresholdCents: 1500000,
+  flatCents: 50000,
+  expressCents: 150000,
 };

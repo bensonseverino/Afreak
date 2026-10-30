@@ -99,7 +99,8 @@ export default function Shop({ category: categoryParam }) {
       colors: f.colors ?? [],
       sizes: f.sizes ?? [],
       priceMin: 0,
-      priceMax: Math.max(1, Math.ceil((f.priceRange?.max ?? 20000) / 100)),
+      // Fallback ceiling is the catalogue's most expensive item (KSh 26,096).
+      priceMax: Math.max(1, Math.ceil((f.priceRange?.max ?? 2609600) / 100)),
     };
   }, [meta.facets]);
 

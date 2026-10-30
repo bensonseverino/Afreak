@@ -2,9 +2,10 @@
 // (FREE_SHIPPING_THRESHOLD_CENTS / FLAT_SHIPPING_CENTS / EXPRESS_SHIPPING_CENTS)
 // and are only used for first paint / when the CMS settings endpoint is
 // unavailable. `POST /checkout/quote` remains authoritative at checkout.
-export const FREE_SHIPPING_THRESHOLD = 150;
-export const FLAT_SHIPPING = 6;
-export const EXPRESS_SHIPPING = 12;
+// Whole KES (the store currency), matching `settings.shipping`.
+export const FREE_SHIPPING_THRESHOLD = 15000;
+export const FLAT_SHIPPING = 500;
+export const EXPRESS_SHIPPING = 1500;
 
 export const DELIVERY_METHODS = [
   { id: 'standard', label: 'Standard', note: '4–7 business days', price: FLAT_SHIPPING },

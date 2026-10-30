@@ -21,7 +21,7 @@ function buildSections(facets) {
 
   return [
     { key: 'category', label: 'CATEGORY', options: categoryOptions, type: 'checkbox' },
-    { key: 'price', label: 'PRICE', type: 'range', min: facets?.priceMin ?? 0, max: facets?.priceMax ?? 200 },
+    { key: 'price', label: 'PRICE', type: 'range', min: facets?.priceMin ?? 0, max: facets?.priceMax ?? 26096 },
     {
       key: 'color',
       label: 'COLOR',
@@ -169,7 +169,7 @@ export default function FilterSidebar({
                     max={section.max}
                     value={filters.price?.from ?? ''}
                     placeholder={section.min}
-                    aria-label="Minimum price in EUR"
+                    aria-label="Minimum price in KSh"
                     onChange={(e) => handlePriceChange(Number(e.target.value) || section.min, filters.price?.to ?? section.max)}
                     className="flex-1 h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink"
                   />
@@ -182,7 +182,7 @@ export default function FilterSidebar({
                     max={section.max}
                     value={filters.price?.to ?? ''}
                     placeholder={section.max}
-                    aria-label="Maximum price in EUR"
+                    aria-label="Maximum price in KSh"
                     onChange={(e) => handlePriceChange(filters.price?.from ?? section.min, Number(e.target.value) || section.max)}
                     className="flex-1 h-10 px-3 border border-line bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink"
                   />

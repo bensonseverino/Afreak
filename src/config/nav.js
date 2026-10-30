@@ -43,7 +43,8 @@ export const MENU_FEATURE_FALLBACK = {
   mediaId: null,
 };
 
-export const FREE_SHIPPING_THRESHOLD_CENTS = 15000;
+// Mirrors `settings.shipping.thresholdCents` (KSh 15,000) until the CMS answers.
+export const FREE_SHIPPING_THRESHOLD_CENTS = 1500000;
 
 /**
  * Active-link test that understands query-string targets such as

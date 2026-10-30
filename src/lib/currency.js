@@ -1,14 +1,15 @@
 /**
  * Display-currency configuration.
  *
- * Product and order amounts are stored in `BASE_CURRENCY` (EUR). The switcher
- * only changes how those amounts are *displayed*; customers are always charged
- * in `CHARGE_CURRENCY`. Adding a currency is a single entry in
- * `SUPPORTED_CURRENCIES` plus its quote in the backend rates payload.
+ * Product and order amounts are stored in `BASE_CURRENCY` (KES), which is also
+ * the store's own currency in the CMS. The switcher only changes how those
+ * amounts are *displayed*; customers are always charged in `CHARGE_CURRENCY`.
+ * Adding a currency is a single entry in `SUPPORTED_CURRENCIES` plus its quote
+ * in the backend rates payload.
  */
 
-export const BASE_CURRENCY = 'EUR';
-export const CHARGE_CURRENCY = 'EUR';
+export const BASE_CURRENCY = 'KES';
+export const CHARGE_CURRENCY = 'KES';
 
 /** localStorage key for the shopper's choice. */
 export const CURRENCY_STORAGE_KEY = 'afreak_currency';
@@ -24,7 +25,9 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', locale: 'en-KE', decimals: 0 },
 ];
 
-const BASE_META = SUPPORTED_CURRENCIES[0];
+const BASE_META =
+  SUPPORTED_CURRENCIES.find((currency) => currency.code === BASE_CURRENCY) ??
+  SUPPORTED_CURRENCIES[0];
 
 export function currencyFor(code) {
   return SUPPORTED_CURRENCIES.find((currency) => currency.code === code) ?? BASE_META;

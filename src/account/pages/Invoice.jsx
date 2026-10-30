@@ -149,7 +149,7 @@ export default function Invoice() {
         </dl>
 
         <p className="mt-3 text-right text-[11px] text-graphite">
-          All amounts are in EUR, the currency charged.
+          All amounts are in KES, the currency charged.
         </p>
 
         <p className="mt-12 text-[12px] text-graphite">

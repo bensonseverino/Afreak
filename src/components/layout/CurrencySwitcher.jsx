@@ -8,8 +8,8 @@ import { currencyFor } from '../../lib/currency';
 
 /**
  * Header currency control (spec §2).
- * Trigger shows `€ EUR`; the panel mirrors the account menu so the header keeps
- * one dropdown pattern. Selecting only changes display — checkout charges EUR.
+ * Trigger shows `KSh KES`; the panel mirrors the account menu so the header keeps
+ * one dropdown pattern. Selecting only changes display — checkout charges KES.
  */
 export default function CurrencySwitcher() {
   const { currency, setCurrency, availableCurrencies } = useCurrency();

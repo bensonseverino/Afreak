@@ -129,11 +129,9 @@ export function usePrefetchMenuData() {
  * Shipping rules from the CMS (`settings.shipping`).
  *
  * The CMS stores these amounts in the store's own currency (`settings.currency`,
- * e.g. KES), while product prices and every cart total are in the EUR base
- * currency the shopper is charged in. Convert once here so comparisons
- * (`subtotal >= threshold`) and `<Price>` both work in base amounts — reading
- * "KES 15,000" as if it were €15,000 made free shipping unreachable and
- * displayed the threshold ~145x too high.
+ * now KES — the same currency every product price and cart total is in). They
+ * are converted into the base currency anyway so a future CMS currency change
+ * cannot compare e.g. a KES threshold against a differently priced subtotal.
  */
 export function useShippingRates() {
   const { settings } = usePublicSettings();
@@ -145,8 +143,8 @@ export function useShippingRates() {
     const cents = (value, fallback) =>
       typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
 
-    // Without rates the CMS amounts cannot be converted, so fall back to the
-    // EUR defaults rather than showing an un-converted number.
+    // Without rates (and a currency mismatch) fall back to the store defaults
+    // rather than showing an un-converted number.
     const canConvert = Boolean(rates) || storeCurrency === baseCurrency;
     // Keep the fractional cents: rounding here would turn KES 15,000 into
     // 14,999 once <Price> converts it back for display.
@@ -176,7 +174,7 @@ export function useShippingRates() {
   ]);
 }
 
-/** Free-shipping threshold in EUR base (the currency every price is stored in). */
+/** Free-shipping threshold in the base currency (KES, the currency every price is stored in). */
 export function useShippingThreshold() {
   return useShippingRates().freeShippingThreshold;
 }

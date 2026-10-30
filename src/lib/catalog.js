@@ -163,6 +163,19 @@ export function detailToProduct(detail) {
     ratingDistribution: detail.rating?.distribution ?? null,
     sizeChart: detail.sizeChart ?? null,
     images: (detail.images ?? []).map((img) => assetUrl(img.url)).filter(Boolean),
+    // The same images with the CMS metadata the gallery needs to prefer the
+    // selected colour and put the primary shot first. `images` stays a plain
+    // URL list for cards, cart lines and order confirmations.
+    imageObjects: (detail.images ?? [])
+      .map((img) => ({
+        url: assetUrl(img.url),
+        alt: img.alt ?? null,
+        optionValueId: img.optionValueId ?? img.option_value_id ?? null,
+        colorName: img.colorName ?? img.color_name ?? null,
+        isPrimary: Boolean(img.isPrimary ?? img.is_primary),
+        position: img.sort ?? img.position ?? 0,
+      }))
+      .filter((img) => Boolean(img.url)),
     colors: colorsFromOptions,
     sizes: sizesFromOption,
     variants,

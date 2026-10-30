@@ -49,7 +49,7 @@ function persistCurrency(currency) {
 function currencyForCountry(country) {
   if (country === 'KE') return 'KES';
   if (country === 'GB') return 'GBP';
-  // The shop itself prices in EUR, so the rest of the world starts there.
+  // The shop itself prices in KES, so the rest of the world starts there.
   return BASE_CURRENCY;
 }
 
@@ -176,13 +176,17 @@ export function CurrencyProvider({ children }) {
   const availableCurrencies = useMemo(() => {
     // Show the full set while the first request is in flight so the control
     // does not pop into place; drop codes without a quote once rates arrive.
-    if (!rates) return loading ? SUPPORTED_CURRENCIES : SUPPORTED_CURRENCIES.slice(0, 1);
+    if (!rates) {
+      return loading
+        ? SUPPORTED_CURRENCIES
+        : SUPPORTED_CURRENCIES.filter((option) => option.code === BASE_CURRENCY);
+    }
 
     // A quote is only usable when the base quote exists too, otherwise we
-    // could label an unconverted EUR amount with a foreign symbol.
+    // could label an unconverted KES amount with a foreign symbol.
     const baseQuote = Number(rates[BASE_CURRENCY]);
     if (!Number.isFinite(baseQuote) || baseQuote <= 0) {
-      return SUPPORTED_CURRENCIES.slice(0, 1);
+      return SUPPORTED_CURRENCIES.filter((option) => option.code === BASE_CURRENCY);
     }
 
     return SUPPORTED_CURRENCIES.filter((option) => {

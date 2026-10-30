@@ -1,7 +1,8 @@
-// Currency formatting — spec wants "€120.00" (dot decimal, symbol first).
+import { BASE_CURRENCY, formatMoney } from '../lib/currency';
+
+// Currency formatting in the store currency ("KSh 2,030").
 export function formatPrice(value) {
-  const n = Number(value) || 0;
-  return `€${n.toFixed(2)}`;
+  return formatMoney(Number(value) || 0, BASE_CURRENCY);
 }
 
 // Compact review counts → 1200 => "1.2k"
@@ -11,7 +12,7 @@ export function formatCount(value) {
   return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
 }
 
-// API money is integer cents (backend + account specs) → €120.00
+// API money is integer cents (backend + account specs) → KSh 2,030
 export function formatCents(value) {
   return formatPrice((Number(value) || 0) / 100);
 }

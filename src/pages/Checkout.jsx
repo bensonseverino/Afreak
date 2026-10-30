@@ -170,11 +170,10 @@ export default function Checkout() {
         const data = res.data;
         setQuote(data);
 
-        // Lines are priced in the EUR base the catalog uses, but
-        // `shippingCents` comes from `settings.shipping`, which is stored in
-        // the store currency (`data.currency`). Convert the shipping side
-        // before adding it, otherwise a KSh 500 delivery is added to a EUR
-        // subtotal as €500. Without rates we keep the local estimate.
+        // Lines and `shippingCents` are both in the store currency (KES base),
+        // and `data.currency` is that same currency. The conversion below stays
+        // a no-op but keeps a foreign quote currency from being added as-is.
+        // Without rates we keep the local estimate.
         const quoteCurrency = data.currency || baseCurrency;
         if (quoteCurrency !== baseCurrency && !rates) return;
 

@@ -127,23 +127,32 @@ export function useProductVariants(product) {
 
   /** Gallery images for the selected color (color-specific first, then general). */
   const galleryImages = useMemo(() => {
-    if (!product?.images?.length) return [];
+    // `product.imageObjects` carries the CMS metadata (colour, primary flag);
+    // `product.images` is a plain URL list kept for cards and cart lines.
+    const all = (product?.imageObjects?.length
+      ? product.imageObjects
+      : (product?.images ?? []).map((url) =>
+          typeof url === 'string'
+            ? { url, optionValueId: null, colorName: null, isPrimary: false, position: 0 }
+            : { ...url, isPrimary: Boolean(url?.isPrimary) },
+        )
+    ).filter((img) => Boolean(img?.url));
+    if (!all.length) return [];
+
     const color = selection.Color;
     const colorKey = allColorValues.find((c) => c.name === color)?.optionValueId ?? color;
-    const colorSpecific = product.images.filter(
+    const colorSpecific = all.filter(
       (img) =>
         (img.optionValueId && colorKey && img.optionValueId === colorKey) ||
         (img.colorName && color && img.colorName === color),
     );
-    const general = product.images.filter(
-      (img) => !img.optionValueId && !img.colorName,
-    );
-    const pool = colorSpecific.length ? colorSpecific : general.length ? general : product.images;
+    const general = all.filter((img) => !img.optionValueId && !img.colorName);
+    const pool = colorSpecific.length ? colorSpecific : general.length ? general : all;
     // Sort by isPrimary first, then position
     return [...pool].sort(
       (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || (a.position ?? 0) - (b.position ?? 0),
     ).map((i) => i.url);
-  }, [product?.images, selection.Color, allColorValues]);
+  }, [product?.imageObjects, product?.images, selection.Color, allColorValues]);
 
   /** Current effective price (variant override or base). */
   const price = useMemo(() => {
