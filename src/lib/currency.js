@@ -42,19 +42,27 @@ export function roundMoney(value, currency) {
 }
 
 /**
+ * Convert between any two currencies in a USD-quoted rate table.
+ * Returns the amount unchanged when a quote is missing (never NaN).
+ */
+export function convertBetween(amount, rates, from, to) {
+  const value = Number(amount) || 0;
+  if (!rates || !from || !to || from === to) return value;
+
+  const source = Number(rates[from]);
+  const target = Number(rates[to]);
+  if (!Number.isFinite(source) || !Number.isFinite(target) || source <= 0 || target <= 0) {
+    return value;
+  }
+  return (value * target) / source;
+}
+
+/**
  * Convert an amount from the base currency using a USD-quoted rate table.
  * Returns the amount unchanged when either quote is missing (never NaN).
  */
 export function convertAmount(amount, rates, currency) {
-  const value = Number(amount) || 0;
-  if (!rates || currency === BASE_CURRENCY) return value;
-
-  const target = Number(rates[currency]);
-  const base = Number(rates[BASE_CURRENCY]);
-  if (!Number.isFinite(target) || !Number.isFinite(base) || target <= 0 || base <= 0) {
-    return value;
-  }
-  return (value * target) / base;
+  return convertBetween(amount, rates, BASE_CURRENCY, currency);
 }
 
 const formatters = new Map();

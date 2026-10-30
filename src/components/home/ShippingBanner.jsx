@@ -4,8 +4,9 @@ import Price from '../ui/Price';
 import { Link } from 'react-router-dom';
 import Skeleton from '../ui/Skeleton';
 import { ContentUnavailable, FallbackNotice } from '../ui/ContentState';
-import { useHome, useSettings } from '../../lib/catalog';
-import { DEFAULT_SHIPPING_BANNER, DEFAULT_SHIPPING_RULES } from '../../data/defaults';
+import { useHome } from '../../lib/catalog';
+import { useShippingThreshold } from '../../hooks/useMenuData';
+import { DEFAULT_SHIPPING_BANNER } from '../../data/defaults';
 
 /**
  * Shipping banner (CMS CONNECTION FIX §5.2): title / subtitle / CTA from
@@ -15,11 +16,9 @@ import { DEFAULT_SHIPPING_BANNER, DEFAULT_SHIPPING_RULES } from '../../data/defa
  */
 export default function ShippingBanner() {
   const { home, isPending, isError, refetch } = useHome();
-  const { settings } = useSettings();
+  const threshold = useShippingThreshold();
 
   const banner = home?.shippingBanner ?? null;
-  const thresholdCents =
-    settings?.shipping?.thresholdCents ?? DEFAULT_SHIPPING_RULES.thresholdCents;
   const usingFallback = !isPending && !isError && !banner?.title;
   const data = banner?.title ? banner : DEFAULT_SHIPPING_BANNER;
 
@@ -79,7 +78,7 @@ export default function ShippingBanner() {
                   data.subtitle
                 ) : (
                   <>
-                    On all orders over <Price amount={thresholdCents / 100} />
+                    On all orders over <Price amount={threshold} />
                   </>
                 )}
               </p>

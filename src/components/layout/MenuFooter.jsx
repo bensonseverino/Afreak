@@ -1,14 +1,11 @@
 import Icon from '../ui/Icon';
 import Price from '../ui/Price';
-import { menuSocials, FREE_SHIPPING_THRESHOLD_CENTS } from '../../config/nav';
-import { usePublicSettings } from '../../hooks/useMenuData';
+import { menuSocials } from '../../config/nav';
+import { useShippingThreshold } from '../../hooks/useMenuData';
 
 /** Shipping note + socials + copyright (spec §3.7). */
 export default function MenuFooter({ stagger }) {
-  const { settings } = usePublicSettings();
-  const thresholdCents =
-    Number(settings.shipping?.thresholdCents ?? settings.shipping?.threshold_cents) ||
-    FREE_SHIPPING_THRESHOLD_CENTS;
+  const threshold = useShippingThreshold();
 
   return (
     <div
@@ -18,7 +15,7 @@ export default function MenuFooter({ stagger }) {
       <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-label text-white/60">
         <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 bg-volt" />
         <span>
-          Free shipping worldwide over <Price amount={thresholdCents / 100} />
+          Free shipping worldwide over <Price amount={threshold} />
         </span>
       </p>
 

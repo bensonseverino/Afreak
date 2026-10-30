@@ -16,7 +16,7 @@ import { resolveVariantId } from '../lib/catalog';
 import { TRACK_TYPES, track } from '../lib/analytics';
 import useCurrency from '../hooks/useCurrency';
 import useCartDisplayTotals from '../hooks/useCartDisplayTotals';
-import { formatMoney } from '../lib/currency';
+import { convertBetween, formatMoney } from '../lib/currency';
 import { isCardNumber, isCvc, isEmail, isExpiry, isPhone, isPostal, required } from '../utils/validators';
 
 const INITIAL = {
@@ -104,7 +104,7 @@ export default function Checkout() {
     setServerTotals,
   } = useCart();
   const { displayTotal } = useCartDisplayTotals();
-  const { formatValue, currency, chargeCurrency } = useCurrency();
+  const { formatValue, currency, chargeCurrency, rates, baseCurrency } = useCurrency();
 
   const [form, setForm] = useState(() => {
     try {
@@ -169,12 +169,25 @@ export default function Checkout() {
         if (cancelled) return;
         const data = res.data;
         setQuote(data);
+
+        // Lines are priced in the EUR base the catalog uses, but
+        // `shippingCents` comes from `settings.shipping`, which is stored in
+        // the store currency (`data.currency`). Convert the shipping side
+        // before adding it, otherwise a KSh 500 delivery is added to a EUR
+        // subtotal as €500. Without rates we keep the local estimate.
+        const quoteCurrency = data.currency || baseCurrency;
+        if (quoteCurrency !== baseCurrency && !rates) return;
+
+        const subtotalBase = data.subtotalCents / 100;
+        const discountBase = data.discountCents / 100;
+        const shippingBase =
+          convertBetween(data.shippingCents, rates, quoteCurrency, baseCurrency) / 100;
         setServerTotals({
-          subtotal: data.subtotalCents / 100,
-          discount: data.discountCents / 100,
-          shipping: data.shippingCents / 100,
+          subtotal: subtotalBase,
+          discount: discountBase,
+          shipping: shippingBase,
           tax: 0,
-          total: data.totalCents / 100,
+          total: subtotalBase - discountBase + shippingBase,
         });
       } catch {
         /* keep the local estimate if the quote call fails */
@@ -184,7 +197,7 @@ export default function Checkout() {
     return () => {
       cancelled = true;
     };
-  }, [items, shippingMethod, promoCode, setServerTotals]);
+  }, [items, shippingMethod, promoCode, setServerTotals, rates, baseCurrency]);
 
   // Drop the server totals when leaving checkout.
   useEffect(() => () => setServerTotals(null), [setServerTotals]);

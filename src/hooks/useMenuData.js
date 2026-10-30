@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { mapImage } from '../lib/catalog';
+import { convertBetween } from '../lib/currency';
+import useCurrency from './useCurrency';
 import { categories as staticCategories } from '../data/products';
 import { DEFAULT_FOOTER, DEFAULT_STORE } from '../data/defaults';
 import { FREE_SHIPPING_THRESHOLD_CENTS, MENU_FEATURE_FALLBACK } from '../config/nav';
@@ -124,19 +126,36 @@ export function usePrefetchMenuData() {
 }
 
 /**
- * Shipping rules from the CMS (`settings.shipping`, audit row 5). Values are
- * exposed in cents (authoritative API unit) and euros (display).
- * Checkout still re-quotes server-side, so these only drive the preview.
+ * Shipping rules from the CMS (`settings.shipping`).
+ *
+ * The CMS stores these amounts in the store's own currency (`settings.currency`,
+ * e.g. KES), while product prices and every cart total are in the EUR base
+ * currency the shopper is charged in. Convert once here so comparisons
+ * (`subtotal >= threshold`) and `<Price>` both work in base amounts — reading
+ * "KES 15,000" as if it were €15,000 made free shipping unreachable and
+ * displayed the threshold ~145x too high.
  */
 export function useShippingRates() {
   const { settings } = usePublicSettings();
+  const { rates, baseCurrency } = useCurrency();
   const shipping = settings?.shipping ?? {};
+  const storeCurrency = settings?.currency || baseCurrency;
+
   return useMemo(() => {
     const cents = (value, fallback) =>
       typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
-    const thresholdCents = cents(shipping.thresholdCents, FREE_SHIPPING_THRESHOLD_CENTS);
-    const flatCents = cents(shipping.flatCents, Math.round(FLAT_SHIPPING * 100));
-    const expressCents = cents(shipping.expressCents, Math.round(EXPRESS_SHIPPING * 100));
+
+    // Without rates the CMS amounts cannot be converted, so fall back to the
+    // EUR defaults rather than showing an un-converted number.
+    const canConvert = Boolean(rates) || storeCurrency === baseCurrency;
+    // Keep the fractional cents: rounding here would turn KES 15,000 into
+    // 14,999 once <Price> converts it back for display.
+    const toBase = (amount) => convertBetween(amount, rates, storeCurrency, baseCurrency);
+    const base = (value, fallback) => (canConvert ? toBase(cents(value, fallback)) : fallback);
+
+    const thresholdCents = base(shipping.thresholdCents, FREE_SHIPPING_THRESHOLD_CENTS);
+    const flatCents = base(shipping.flatCents, Math.round(FLAT_SHIPPING * 100));
+    const expressCents = base(shipping.expressCents, Math.round(EXPRESS_SHIPPING * 100));
     return {
       thresholdCents,
       flatCents,
@@ -144,11 +163,20 @@ export function useShippingRates() {
       freeShippingThreshold: thresholdCents / 100,
       flat: flatCents / 100,
       express: expressCents / 100,
+      storeCurrency,
+      baseCurrency,
     };
-  }, [shipping.thresholdCents, shipping.flatCents, shipping.expressCents]);
+  }, [
+    shipping.thresholdCents,
+    shipping.flatCents,
+    shipping.expressCents,
+    rates,
+    baseCurrency,
+    storeCurrency,
+  ]);
 }
 
-/** Free-shipping threshold in display euros, from the CMS (`settings.shipping`). */
+/** Free-shipping threshold in EUR base (the currency every price is stored in). */
 export function useShippingThreshold() {
   return useShippingRates().freeShippingThreshold;
 }

@@ -4,8 +4,9 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import PromoBar from './PromoBar';
 import Price from '../ui/Price';
-import { useHome, useSettings } from '../../lib/catalog';
-import { DEFAULT_PROMO_BAR, DEFAULT_SHIPPING_RULES } from '../../data/defaults';
+import { useHome } from '../../lib/catalog';
+import { useShippingThreshold } from '../../hooks/useMenuData';
+import { DEFAULT_PROMO_BAR } from '../../data/defaults';
 
 export default function Layout() {
   // Scroll to top on route change
@@ -14,12 +15,11 @@ export default function Layout() {
   }, []);
 
   const { home } = useHome();
-  const { settings } = useSettings();
+  const threshold = useShippingThreshold();
 
   // Promo bar: CMS text wins; `active: false` hides the bar entirely (the CMS
   // is the switch). A brand-new store shows the shipping-message fallback.
   const promoBar = home?.promoBar ?? null;
-  const threshold = (settings?.shipping?.thresholdCents ?? DEFAULT_SHIPPING_RULES.thresholdCents) / 100;
   const promoBarHidden = promoBar ? promoBar.active === false || !promoBar.text : false;
   const promoBarText = promoBar?.text || DEFAULT_PROMO_BAR.text;
 
