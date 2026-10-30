@@ -56,13 +56,23 @@ export function cardToProduct(card) {
       colorImages.set(k, assetUrl(v));
     }
   }
-  const minPrice = card.priceFromCents ? euros(card.priceFromCents) : null;
+  // The list endpoint is camelCase (`priceCents`), older builds used
+  // snake_case; accept both so a card never renders as "0".
+  const priceMin = euros(card.priceCents ?? card.price_cents);
+  const priceMax = euros(card.priceToCents ?? card.price_to_cents);
+  const hasRange =
+    card.hasPriceRange ?? (priceMax != null && priceMin != null && priceMax !== priceMin);
+  const minPrice = hasRange
+    ? priceMin
+    : card.priceFromCents
+      ? euros(card.priceFromCents)
+      : null;
   return {
     id: card.id,
     slug: card.slug,
     name: card.name,
-    price: euros(card.price_cents) ?? 0,
-    oldPrice: euros(card.old_price_cents),
+    price: priceMin ?? 0,
+    oldPrice: euros(card.oldPriceCents ?? card.old_price_cents),
     category: card.category?.slug ?? '',
     categoryName: card.category?.name ?? '',
     isNew: Boolean(card.isNew),
@@ -75,6 +85,7 @@ export function cardToProduct(card) {
     customizable: false,
     colorImages,
     priceFrom: minPrice,
+    priceTo: hasRange ? priceMax : null,
     soldOut: Boolean(card.soldOut),
   };
 }
