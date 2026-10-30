@@ -147,7 +147,14 @@ export function useProductVariants(product) {
         (img.colorName && color && img.colorName === color),
     );
     const general = all.filter((img) => !img.optionValueId && !img.colorName);
-    const pool = colorSpecific.length ? colorSpecific : general.length ? general : all;
+    // Colour-specific shots first (the selected colour's lead image), then the
+    // product's general shots, so a colour with one photo still has a gallery.
+    const seen = new Set();
+    const pool = [...colorSpecific, ...general, ...all].filter((img) => {
+      if (seen.has(img.url)) return false;
+      seen.add(img.url);
+      return true;
+    });
     // Sort by isPrimary first, then position
     return [...pool].sort(
       (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || (a.position ?? 0) - (b.position ?? 0),
